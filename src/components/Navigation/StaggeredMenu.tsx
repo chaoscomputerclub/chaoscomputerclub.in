@@ -37,7 +37,7 @@ interface StaggeredMenuProps {
   onMenuClose?: () => void;
   onItemClick?: (id: string) => void;
   activeItemId?: string;
-  footerContent?: React.ReactNode;
+  footerContent?: React.ReactNode | ((close: () => void) => React.ReactNode);
   navHidden?: boolean;
 }
 
@@ -598,7 +598,9 @@ export const StaggeredMenu: React.FC<StaggeredMenuProps> = ({
               )}
             {footerContent && (
               <div className="sm-footer-content">
-                {footerContent}
+                {typeof footerContent === "function"
+                  ? footerContent(closeMenu)
+                  : footerContent}
               </div>
             )}
           </div>

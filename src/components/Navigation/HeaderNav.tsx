@@ -192,14 +192,19 @@ export function HeaderNav() {
             })}
           </nav>
 
-          {/* Right: Sign In button — visible on desktop (xl+) */}
+          {/* Right: Enter the network action — visible on desktop (xl+) */}
           <div className="hidden xl:flex items-center shrink-0">
-            <button
-              type="button"
-              className="rounded-none border border-accent/60 bg-accent/10 px-5 py-2 font-mono text-xs tracking-[0.14em] text-accent uppercase transition-all hover:bg-accent hover:text-background hover:border-accent cursor-pointer"
+            <a
+              href="#manifesto"
+              onClick={(e) => {
+                e.preventDefault();
+                setActiveTab("#manifesto");
+                scrollTo("#manifesto");
+              }}
+              className="inline-flex h-10 items-center justify-center rounded-none bg-accent px-5 font-mono text-[0.6rem] tracking-[0.18em] text-accent-foreground uppercase font-semibold transition-colors hover:bg-accent/85 cursor-pointer select-none"
             >
-              Join Us
-            </button>
+              [ Enter the network → ]
+            </a>
           </div>
         </div>
       </header>
@@ -221,14 +226,19 @@ export function HeaderNav() {
           activeItemId={activeTab}
           onItemClick={handleMobileItemClick}
           navHidden={!navVisible}
-          footerContent={
-            <button
-              type="button"
-              className="w-full rounded-none border border-[#ccff00]/60 bg-[#ccff00]/10 px-5 py-3 font-mono text-sm tracking-[0.14em] text-[#ccff00] uppercase transition-all hover:bg-[#ccff00] hover:text-[#0a0a0a] hover:border-[#ccff00] cursor-pointer"
+          footerContent={(closeMenu) => (
+            <a
+              href="#manifesto"
+              onClick={(e) => {
+                e.preventDefault();
+                closeMenu?.();
+                handleMobileItemClick("#manifesto");
+              }}
+              className="flex h-11 w-full items-center justify-center rounded-none bg-accent px-5 font-mono text-[0.68rem] tracking-[0.18em] text-accent-foreground uppercase font-semibold transition-colors hover:bg-accent/85 cursor-pointer select-none"
             >
-              Join Us
-            </button>
-          }
+              [ Enter the network → ]
+            </a>
+          )}
         />
       </div>
     </>
