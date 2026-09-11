@@ -13,7 +13,7 @@ const NAV_LINKS: NavItem[] = [
   { id: "#gap", num: "01", name: "The gap" },
   { id: "#forge", num: "02", name: "The forge" },
   { id: "#chaos", num: "03", name: "Chaos" },
-  { id: "#codebase", num: "04", name: "Codebase" },
+  { id: "#opensource", num: "04", name: "Open Source" },
   { id: "#values", num: "05", name: "Values" },
   { id: "#telemetry", num: "06", name: "Telemetry" },
   { id: "#manifesto", num: "07", name: "Resolution" },

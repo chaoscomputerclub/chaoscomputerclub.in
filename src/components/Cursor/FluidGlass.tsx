@@ -84,7 +84,7 @@ export function FluidGlass({
   const navItems = (rawOverrides["navItems"] as Array<{ label: string; link: string }>) || [
     { label: "EXPLORE", link: "#forge" },
     { label: "SPEC", link: "#gap" },
-    { label: "CODE", link: "#codebase" },
+    { label: "OPEN SOURCE", link: "#opensource" },
   ];
 
   return (
