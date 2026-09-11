@@ -10,10 +10,47 @@ const CONTRIBUTION_CELLS = Array.from({ length: 84 }).map((_, i) => {
 });
 
 const CYCLE_STEPS = [
-  { step: "01", label: "Learn", desc: "Read how the masters write code in the public square." },
-  { step: "02", label: "Build", desc: "Solve hard problems with working prototypes under pressure." },
-  { step: "03", label: "Contribute", desc: "Push patches and improvements back upstream to the commons." },
-  { step: "04", label: "Share", desc: "Leave the door unlocked and the knowledge open for the next peer." },
+  {
+    step: "01",
+    label: "Learn",
+    desc: "Read how the masters architect real systems. Study source code like classical literature before writing a single line.",
+  },
+  {
+    step: "02",
+    label: "Build",
+    desc: "Solve real, intractable engineering problems. Ship working prototypes, benchmarks, and tools under the pressure of the clock.",
+  },
+  {
+    step: "03",
+    label: "Contribute",
+    desc: "Fix the bug, patch the memory leak, and submit the pull request upstream. Pay the debt forward to the global commons.",
+  },
+  {
+    step: "04",
+    label: "Share",
+    desc: "Leave the door unlocked. Publish code, write clear documentation, and mentor the peer who started today.",
+  },
+];
+
+const PILLARS = [
+  {
+    idx: "01",
+    tag: "SOURCE AS LITERATURE",
+    title: "Reading Before Writing",
+    body: "Most students are taught to write toy programs in isolation. Real engineering begins by reading how massive distributed systems actually survive in the wild: studying SQLite for crash-safety, Redis for single-threaded event loops, and Linux for memory paging. The greatest computer science curriculum already exists on GitHub.",
+  },
+  {
+    idx: "02",
+    tag: "RADICAL MERITOCRACY",
+    title: "The Patch is the Great Equalizer",
+    body: "An open compiler does not care what university you attended, how old you are, or what title is on your resume. It only cares about correctness, memory safety, and whether the test suite passes. In open source, your reputation is built on the elegance of your diff and the humility of your peer reviews.",
+  },
+  {
+    idx: "03",
+    tag: "THE LIVING COMMONS",
+    title: "Software as a Public Trust",
+    body: "The internet was not gifted to us by a monopoly. It was built by volunteers who wrote RFCs, compilers, and kernels, and chose to leave the door unlocked behind them. We operate with that exact conviction: every line written in CCC belongs to humanity, open for inspection, fork, and contribution forever.",
+  },
 ];
 
 /** Block 04 — Open Source: Built to be shared */
@@ -29,6 +66,7 @@ export function BlockScreensSplit() {
         <span className="font-mono text-[0.6rem] tracking-[0.2em] text-index uppercase">INDEX 4.0</span>
       </div>
 
+      {/* Main Narrative Split */}
       <div className="mt-10 grid gap-12 md:grid-cols-12 items-start">
         {/* Left Column: Philosophy & Manifesto */}
         <div className="md:col-span-6">
@@ -45,19 +83,40 @@ export function BlockScreensSplit() {
             The world runs on software built by people who chose to leave the door open.
           </p>
 
+          <p className="mt-3 text-xs md:text-sm text-muted-foreground leading-relaxed font-sans">
+            Every operating system kernel, every web server, and every cryptographic library that preserves human privacy exists because developers decided to share their craft with strangers across the world.
+          </p>
+
           {/* Three Core Axioms */}
-          <div className="mt-6 border-l-2 border-accent/70 pl-4 py-1 space-y-2 font-mono text-sm sm:text-base text-foreground">
-            <div className="flex items-center gap-2">
-              <span className="text-accent text-xs">→</span>
-              <span>We learn from it.</span>
+          <div className="mt-6 border-l-2 border-accent/70 pl-4 py-1 space-y-3 font-mono text-sm sm:text-base text-foreground">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-accent text-xs">→</span>
+                <span className="font-semibold text-foreground">We learn from it.</span>
+              </div>
+              <p className="mt-1 pl-4 text-xs font-sans text-muted-foreground leading-relaxed">
+                We read how master engineers solve race conditions, manage cache lines, and handle catastrophic faults.
+              </p>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-accent text-xs">→</span>
-              <span>We build on it.</span>
+
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-accent text-xs">→</span>
+                <span className="font-semibold text-foreground">We build on it.</span>
+              </div>
+              <p className="mt-1 pl-4 text-xs font-sans text-muted-foreground leading-relaxed">
+                We stand on the shoulders of the global commons to build tools, architectures, and systems at the edge of comfort.
+              </p>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-accent text-xs">→</span>
-              <span className="font-semibold text-accent">We contribute back.</span>
+
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-accent text-xs">→</span>
+                <span className="font-semibold text-accent">We contribute back.</span>
+              </div>
+              <p className="mt-1 pl-4 text-xs font-sans text-muted-foreground leading-relaxed">
+                When we find a memory leak, a broken invariant, or an unoptimized hot path, we submit the patch upstream.
+              </p>
             </div>
           </div>
 
@@ -78,7 +137,7 @@ export function BlockScreensSplit() {
 
           {/* The Cycle Definition */}
           <div className="mt-10 border-t border-border pt-7">
-            <div className="font-mono text-xs font-semibold text-foreground tracking-wide">
+            <div className="font-mono text-xs font-semibold text-foreground tracking-wide uppercase">
               The code is open. So are we.
             </div>
             <p className="mt-2 text-xs md:text-sm text-muted-foreground leading-relaxed font-sans">
@@ -98,7 +157,7 @@ export function BlockScreensSplit() {
           </div>
         </div>
 
-        {/* Right Column: The Visual Component (Contribution Telemetry Matrix & Cycle Breakdown) */}
+        {/* Right Column: Visual Component (Contribution Heatmap & Protocol) */}
         <Rise delay={0.15} className="md:col-span-6 md:col-start-7">
           <div
             data-spec-box
@@ -151,16 +210,16 @@ export function BlockScreensSplit() {
             </div>
 
             {/* The Cycle Step Details */}
-            <div className="mt-6 border-t border-border/80 pt-5 space-y-3">
+            <div className="mt-6 border-t border-border/80 pt-5 space-y-3.5">
               <div className="font-mono text-[0.58rem] tracking-widest text-index uppercase mb-1">
                 COMMONS PROTOCOL
               </div>
               {CYCLE_STEPS.map((s) => (
-                <div key={s.step} className="grid grid-cols-[2.2rem_1fr] gap-3 items-baseline border-b border-border/40 pb-2.5">
-                  <span className="font-mono text-xs text-accent font-semibold">{s.step}</span>
+                <div key={s.step} className="grid grid-cols-[2.4rem_1fr] gap-3 items-start border-b border-border/40 pb-3">
+                  <span className="font-mono text-xs text-accent font-semibold pt-0.5">{s.step}</span>
                   <div>
                     <span className="font-mono text-xs font-semibold uppercase text-foreground">{s.label}</span>
-                    <span className="text-muted-foreground font-sans text-xs ml-2">{s.desc}</span>
+                    <p className="text-muted-foreground font-sans text-xs leading-relaxed mt-0.5">{s.desc}</p>
                   </div>
                 </div>
               ))}
@@ -182,6 +241,40 @@ export function BlockScreensSplit() {
             </div>
           </div>
         </Rise>
+      </div>
+
+      {/* Deep-Dive Textual Pillars: The Reality & Craft of the Commons */}
+      <div className="mt-16 md:mt-24 border-t border-border pt-12">
+        <div className="flex items-center justify-between font-mono text-[0.6rem] tracking-[0.2em] text-index uppercase mb-8">
+          <span>ETHICS OF THE CRAFT</span>
+          <span>HOW WE PRACTICE OPEN SOURCE</span>
+        </div>
+
+        <div className="grid gap-8 md:grid-cols-3">
+          {PILLARS.map((p) => (
+            <div
+              key={p.idx}
+              className="border border-border/70 bg-surface/30 p-6 flex flex-col justify-between transition-colors hover:border-accent/40"
+            >
+              <div>
+                <div className="flex items-baseline justify-between font-mono">
+                  <span className="text-accent text-xs font-semibold">[{p.idx}]</span>
+                  <span className="text-[0.55rem] tracking-wider text-index uppercase">{p.tag}</span>
+                </div>
+                <h3 className="mt-4 font-display text-base font-semibold text-foreground tracking-tight">
+                  {p.title}
+                </h3>
+                <p className="mt-3 text-xs md:text-sm text-muted-foreground leading-relaxed font-sans">
+                  {p.body}
+                </p>
+              </div>
+
+              <div className="mt-6 border-t border-border/40 pt-3 font-mono text-[0.52rem] text-accent tracking-widest uppercase">
+                CCC_PRACTICE // UNRESTRICTED
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </section>
   );
