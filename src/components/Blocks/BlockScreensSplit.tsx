@@ -1,34 +1,31 @@
+import { motion } from "framer-motion";
 import BlurText from "@/components/Motion/BlurText";
 import { Rise } from "@/components/Motion/MaskedLine";
 
-const CONTRIBUTION_CELLS = Array.from({ length: 84 }).map((_, i) => {
-  // Deterministic commit activity pattern with occasional acid-lime highlights
-  const activity = (i * 13 + 7) % 11;
-  const isHigh = activity > 7;
-  const isAccent = (i * 17) % 19 === 0 || i === 42 || i === 73;
-  return { id: i, isHigh, isAccent, activity };
-});
+const EASE = [0.16, 1, 0.3, 1] as const;
 
-const CYCLE_STEPS = [
+/* ─── Data ──────────────────────────────────────────────────────────────── */
+
+const AXIOMS = [
   {
-    step: "01",
-    label: "Learn",
-    desc: "Read how the masters architect real systems. Study source code like classical literature before writing a single line.",
+    n: "4.1",
+    k: "Learn",
+    v: "Read how master engineers handle race conditions, cache lines, and catastrophic faults. The world's greatest CS curriculum lives on GitHub.",
   },
   {
-    step: "02",
-    label: "Build",
-    desc: "Solve real, intractable engineering problems. Ship working prototypes, benchmarks, and tools under the pressure of the clock.",
+    n: "4.2",
+    k: "Build",
+    v: "Stand on the shoulders of the global commons. Solve real engineering problems; ship working prototypes under clock pressure.",
   },
   {
-    step: "03",
-    label: "Contribute",
-    desc: "Fix the bug, patch the memory leak, and submit the pull request upstream. Pay the debt forward to the global commons.",
+    n: "4.3",
+    k: "Contribute",
+    v: "Find the memory leak. Patch the broken invariant. Submit the pull request upstream. Pay the debt forward to humanity.",
   },
   {
-    step: "04",
-    label: "Share",
-    desc: "Leave the door unlocked. Publish code, write clear documentation, and mentor the peer who started today.",
+    n: "4.4",
+    k: "Share",
+    v: "Leave the door unlocked. Publish code, write clear docs, and mentor the peer who started today.",
   },
 ];
 
@@ -37,243 +34,286 @@ const PILLARS = [
     idx: "01",
     tag: "SOURCE AS LITERATURE",
     title: "Reading Before Writing",
-    body: "Most students are taught to write toy programs in isolation. Real engineering begins by reading how massive distributed systems actually survive in the wild: studying SQLite for crash-safety, Redis for single-threaded event loops, and Linux for memory paging. The greatest computer science curriculum already exists on GitHub.",
+    body: "Most students write toy programs in isolation. Real engineering begins by reading how massive distributed systems survive in the wild: studying SQLite for crash-safety, Redis for single-threaded event loops, Linux for memory paging. The greatest CS curriculum already exists on GitHub.",
   },
   {
     idx: "02",
     tag: "RADICAL MERITOCRACY",
-    title: "The Patch is the Great Equalizer",
-    body: "An open compiler does not care what university you attended, how old you are, or what title is on your resume. It only cares about correctness, memory safety, and whether the test suite passes. In open source, your reputation is built on the elegance of your diff and the humility of your peer reviews.",
+    title: "The Patch is the Equaliser",
+    body: "An open compiler does not care what university you attended, how old you are, or what title is on your résumé. It only cares about correctness and whether the test suite passes. Your reputation in open source is built on the elegance of your diff and the humility of your peer reviews.",
   },
   {
     idx: "03",
     tag: "THE LIVING COMMONS",
     title: "Software as a Public Trust",
-    body: "The internet was not gifted to us by a monopoly. It was built by volunteers who wrote RFCs, compilers, and kernels, and chose to leave the door unlocked behind them. We operate with that exact conviction: every line written in CCC belongs to humanity, open for inspection, fork, and contribution forever.",
+    body: "The internet was not gifted to us by a monopoly. It was built by volunteers who wrote RFCs, compilers, and kernels, and chose to leave the door unlocked. We operate with that exact conviction: every line written in CCC belongs to humanity, open for inspection, fork, and contribution — forever.",
   },
 ];
 
-/** Block 04 — Open Source: Built to be shared */
+const CONTRIBUTION_CELLS = Array.from({ length: 84 }).map((_, i) => {
+  const activity = (i * 13 + 7) % 11;
+  const isHigh = activity > 7;
+  const isAccent = (i * 17) % 19 === 0 || i === 42 || i === 73;
+  return { id: i, isHigh, isAccent, activity };
+});
+
+/* ─── Component ─────────────────────────────────────────────────────────── */
+
+/** Block 04 — Open Source: Built to be shared. */
 export function BlockScreensSplit() {
   return (
-    <section id="opensource" data-id="codebase" className="border-b border-border px-4 py-20 md:px-6 md:py-28">
-      {/* Anchor for legacy link navigation */}
+    <section
+      id="opensource"
+      data-id="codebase"
+      className="border-b border-border px-4 py-20 md:px-6 md:py-28"
+    >
+      {/* Legacy anchor */}
       <span id="codebase" className="sr-only" aria-hidden="true" />
 
-      {/* Section Header */}
+      {/* ── Section Header ──────────────────────────────────────────────── */}
       <div className="flex items-baseline justify-between">
         <span className="kicker">(04 // OPEN SOURCE)</span>
-        <span className="font-mono text-[0.6rem] tracking-[0.2em] text-index uppercase">INDEX 4.0</span>
+        <span className="font-mono text-[0.6rem] tracking-[0.2em] text-index uppercase">
+          INDEX 4.0
+        </span>
       </div>
 
-      {/* Main Narrative Split */}
+      {/* ── Main Grid ───────────────────────────────────────────────────── */}
       <div className="mt-10 grid gap-12 md:grid-cols-12 items-start">
-        {/* Left Column: Philosophy & Manifesto */}
-        <div className="md:col-span-6">
+
+        {/* Left ── Philosophy & Spec List */}
+        <div className="md:col-span-5">
           <BlurText
             text="Built to be shared."
             delay={45}
             animateBy="letters"
             direction="top"
             as="h2"
-            className="text-3xl font-medium md:text-4xl lg:text-5xl leading-tight text-foreground tracking-tight"
+            className="text-3xl font-medium md:text-4xl leading-tight tracking-tight"
           />
 
-          <p className="mt-6 text-base md:text-lg leading-relaxed text-foreground/90 font-sans">
-            The world runs on software built by people who chose to leave the door open.
-          </p>
-
-          <p className="mt-3 text-xs md:text-sm text-muted-foreground leading-relaxed font-sans">
-            Every operating system kernel, every web server, and every cryptographic library that preserves human privacy exists because developers decided to share their craft with strangers across the world.
-          </p>
-
-          {/* Three Core Axioms */}
-          <div className="mt-6 border-l-2 border-accent/70 pl-4 py-1 space-y-3 font-mono text-sm sm:text-base text-foreground">
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-accent text-xs">→</span>
-                <span className="font-semibold text-foreground">We learn from it.</span>
-              </div>
-              <p className="mt-1 pl-4 text-xs font-sans text-muted-foreground leading-relaxed">
-                We read how master engineers solve race conditions, manage cache lines, and handle catastrophic faults.
-              </p>
-            </div>
-
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-accent text-xs">→</span>
-                <span className="font-semibold text-foreground">We build on it.</span>
-              </div>
-              <p className="mt-1 pl-4 text-xs font-sans text-muted-foreground leading-relaxed">
-                We stand on the shoulders of the global commons to build tools, architectures, and systems at the edge of comfort.
-              </p>
-            </div>
-
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-accent text-xs">→</span>
-                <span className="font-semibold text-accent">We contribute back.</span>
-              </div>
-              <p className="mt-1 pl-4 text-xs font-sans text-muted-foreground leading-relaxed">
-                When we find a memory leak, a broken invariant, or an unoptimized hot path, we submit the patch upstream.
-              </p>
-            </div>
-          </div>
-
-          <p className="mt-7 text-sm md:text-base leading-relaxed text-muted-foreground font-sans">
-            Chaos Computer Club exists to turn users into contributors — and contributors into community.
-          </p>
-
-          {/* Imperative Strip */}
-          <div className="mt-6 inline-flex flex-wrap items-center gap-2 rounded-none border border-border bg-surface/40 px-3.5 py-2 font-mono text-xs tracking-wider text-foreground">
-            <span className="text-accent">USE IT.</span>
-            <span className="opacity-30">/</span>
-            <span className="text-foreground">UNDERSTAND IT.</span>
-            <span className="opacity-30">/</span>
-            <span className="text-foreground">IMPROVE IT.</span>
-            <span className="opacity-30">/</span>
-            <span className="text-accent font-semibold">SHARE IT.</span>
-          </div>
-
-          {/* The Cycle Definition */}
-          <div className="mt-10 border-t border-border pt-7">
-            <div className="font-mono text-xs font-semibold text-foreground tracking-wide uppercase">
-              The code is open. So are we.
-            </div>
-            <p className="mt-2 text-xs md:text-sm text-muted-foreground leading-relaxed font-sans">
-              We learn from what others built, contribute what we discover, and leave something better for whoever comes next. That&apos;s the cycle.
+          <Rise delay={0.08}>
+            <p className="mt-5 text-sm leading-relaxed text-muted-foreground">
+              Every OS kernel, web server, and cryptographic library that
+              preserves human privacy exists because developers chose to share
+              their craft with strangers across the world.
             </p>
+          </Rise>
 
-            {/* Cycle Flow Breadcrumbs */}
-            <div className="mt-5 flex flex-wrap items-center gap-2 font-mono text-xs text-foreground">
-              <span className="border border-border/80 bg-surface/60 px-2.5 py-1">Learn</span>
-              <span className="text-accent text-xs">→</span>
-              <span className="border border-border/80 bg-surface/60 px-2.5 py-1">Build</span>
-              <span className="text-accent text-xs">→</span>
-              <span className="border border-accent/50 bg-accent/10 px-2.5 py-1 text-accent font-semibold">Contribute</span>
-              <span className="text-accent text-xs">→</span>
-              <span className="border border-border/80 bg-surface/60 px-2.5 py-1">Share</span>
+          {/* Axiom spec list — mirrors BlockVerticalSpec pattern */}
+          <ul className="mt-8 border-t border-border">
+            {AXIOMS.map((a, i) => (
+              <motion.li
+                key={a.n}
+                initial={{ opacity: 0, y: 12 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-8%" }}
+                transition={{ duration: 0.65, ease: EASE, delay: i * 0.07 }}
+                className="group grid grid-cols-[2.6rem_5rem_1fr] items-start gap-3 border-b border-border py-5 transition-colors duration-200 hover:bg-surface"
+              >
+                <span className="font-mono text-[0.6rem] tracking-[0.16em] text-index pt-px">
+                  {a.n}
+                </span>
+                <span className="font-display text-sm text-foreground transition-colors duration-200 group-hover:text-accent uppercase tracking-wide">
+                  {a.k}
+                </span>
+                <span className="text-xs text-muted-foreground leading-relaxed">
+                  {a.v}
+                </span>
+              </motion.li>
+            ))}
+          </ul>
+
+          {/* Terminal manifesto callout */}
+          <Rise delay={0.35}>
+            <div
+              data-spec-box
+              className="tag-cut relative mt-8 border border-border-strong bg-surface p-5"
+              style={{ ["--cut" as string]: "18px" }}
+            >
+              <span className="absolute top-2.5 left-2.5 tag-cut bg-accent px-2 py-0.5 font-mono text-[0.52rem] tracking-[0.16em] text-accent-foreground uppercase">
+                MANIFESTO
+              </span>
+              <p className="mt-5 font-mono text-sm font-semibold text-foreground leading-snug">
+                The code is open.
+                <br />
+                So are we.
+              </p>
+              <p className="mt-2 text-xs text-muted-foreground leading-relaxed">
+                We learn from what others built, contribute what we discover, and
+                leave something better for whoever comes next. That&apos;s the cycle.
+              </p>
+              {/* Cycle pill breadcrumbs */}
+              <div className="mt-4 flex flex-wrap items-center gap-1.5 font-mono text-[0.65rem]">
+                {(["Learn", "Build", "Contribute", "Share"] as const).map((s, i, arr) => (
+                  <span key={s} className="contents">
+                    <span
+                      className={`border px-2 py-0.5 ${
+                        s === "Contribute"
+                          ? "border-accent/60 bg-accent/10 text-accent font-semibold"
+                          : "border-border/80 bg-background/60 text-foreground"
+                      }`}
+                    >
+                      {s}
+                    </span>
+                    {i < arr.length - 1 && (
+                      <span className="text-accent text-[0.6rem]">→</span>
+                    )}
+                  </span>
+                ))}
+              </div>
             </div>
-          </div>
+          </Rise>
         </div>
 
-        {/* Right Column: Visual Component (Contribution Heatmap & Protocol) */}
+        {/* Right ── Contribution Telemetry Panel */}
         <Rise delay={0.15} className="md:col-span-6 md:col-start-7">
           <div
             data-spec-box
-            className="rounded-none border border-border bg-surface/40 p-5 md:p-7 backdrop-blur-md"
+            className="tag-cut relative border border-border bg-surface/50 p-5 md:p-6 backdrop-blur-sm"
+            style={{ ["--cut" as string]: "26px" }}
           >
-            {/* Terminal Header */}
-            <div className="flex items-center justify-between border-b border-border/80 pb-4 font-mono text-[0.62rem] tracking-wider uppercase text-muted-foreground">
+            {/* Industrial corner chip */}
+            <span className="absolute top-3 left-3 tag-cut bg-accent px-2 py-0.5 font-mono text-[0.52rem] tracking-[0.16em] text-accent-foreground uppercase">
+              CHOS // COMMONS
+            </span>
+
+            {/* Panel header */}
+            <div className="mt-7 flex items-center justify-between border-b border-border/80 pb-4 font-mono text-[0.6rem] tracking-wider uppercase text-muted-foreground">
               <div className="flex items-center gap-2">
-                <span className="inline-block h-2 w-2 rounded-none bg-accent animate-pulse" />
-                <span className="text-foreground font-semibold">GITHUB // CONTRIBUTION TELEMETRY</span>
+                <span className="inline-block h-1.5 w-1.5 bg-accent animate-pulse" />
+                <span className="text-foreground font-semibold">
+                  CONTRIBUTION TELEMETRY
+                </span>
               </div>
-              <span className="text-accent text-[0.55rem]">[ LIVING COMMONS ]</span>
+              <span className="text-accent text-[0.52rem]">[ LIVING COMMONS ]</span>
             </div>
 
-            {/* Commit / Contribution Activity Heatmap Matrix */}
+            {/* Heatmap */}
             <div className="mt-5">
-              <div className="flex items-center justify-between font-mono text-[0.58rem] tracking-widest text-index uppercase mb-2.5">
+              <div className="flex items-center justify-between font-mono text-[0.56rem] tracking-widest text-index uppercase mb-2">
                 <span>PEER ACTIVITY MATRIX</span>
                 <span>7 × 12 COMMIT GRAPH</span>
               </div>
 
-              <div className="grid grid-cols-12 gap-1.5 p-3 border border-border/60 bg-background/60">
+              <div className="grid grid-cols-12 gap-1 p-3 border border-border/50 bg-background/50">
                 {CONTRIBUTION_CELLS.map((c) => (
                   <div
                     key={c.id}
-                    title={`Contribution cell #${c.id + 1}`}
+                    title={`Cell #${c.id + 1}`}
                     className={`aspect-square transition-all duration-200 cursor-pointer ${
                       c.isAccent
-                        ? "bg-accent hover:scale-110 shadow-[0_0_8px_rgba(204,255,0,0.5)]"
+                        ? "bg-accent hover:scale-110 shadow-[0_0_6px_rgba(204,255,0,0.45)]"
                         : c.isHigh
-                        ? "bg-foreground/75 hover:bg-foreground hover:scale-110"
+                        ? "bg-foreground/70 hover:bg-foreground hover:scale-110"
                         : c.activity > 3
-                        ? "bg-foreground/30 hover:bg-foreground/60"
-                        : "bg-border/40 hover:bg-border"
+                        ? "bg-foreground/25 hover:bg-foreground/50"
+                        : "bg-border/30 hover:bg-border/70"
                     }`}
                   />
                 ))}
               </div>
 
-              <div className="mt-2.5 flex items-center justify-between font-mono text-[0.52rem] text-index">
-                <span>LESS ACTIVITY</span>
+              <div className="mt-2 flex items-center justify-between font-mono text-[0.5rem] text-index">
+                <span>LESS</span>
                 <div className="flex items-center gap-1">
-                  <span className="h-2 w-2 bg-border/40" />
-                  <span className="h-2 w-2 bg-foreground/30" />
-                  <span className="h-2 w-2 bg-foreground/75" />
+                  <span className="h-2 w-2 bg-border/30" />
+                  <span className="h-2 w-2 bg-foreground/25" />
+                  <span className="h-2 w-2 bg-foreground/70" />
                   <span className="h-2 w-2 bg-accent" />
                 </div>
-                <span>MORE ACTIVITY</span>
+                <span>MORE</span>
               </div>
             </div>
 
-            {/* The Cycle Step Details */}
-            <div className="mt-6 border-t border-border/80 pt-5 space-y-3.5">
-              <div className="font-mono text-[0.58rem] tracking-widest text-index uppercase mb-1">
+            {/* Protocol list */}
+            <div className="mt-6 border-t border-border/70 pt-5">
+              <div className="font-mono text-[0.56rem] tracking-widest text-index uppercase mb-3">
                 COMMONS PROTOCOL
               </div>
-              {CYCLE_STEPS.map((s) => (
-                <div key={s.step} className="grid grid-cols-[2.4rem_1fr] gap-3 items-start border-b border-border/40 pb-3">
-                  <span className="font-mono text-xs text-accent font-semibold pt-0.5">{s.step}</span>
-                  <div>
-                    <span className="font-mono text-xs font-semibold uppercase text-foreground">{s.label}</span>
-                    <p className="text-muted-foreground font-sans text-xs leading-relaxed mt-0.5">{s.desc}</p>
-                  </div>
-                </div>
-              ))}
+              <ul className="border-t border-border/50">
+                {[
+                  { step: "01", label: "Learn", desc: "Study source code like classical literature." },
+                  { step: "02", label: "Build", desc: "Ship under real clock pressure." },
+                  { step: "03", label: "Contribute", desc: "Fix the bug. Submit the patch upstream." },
+                  { step: "04", label: "Share", desc: "Leave the door unlocked for whoever comes next." },
+                ].map((s) => (
+                  <li
+                    key={s.step}
+                    className="group grid grid-cols-[2rem_4.5rem_1fr] items-start gap-2 border-b border-border/40 py-3 hover:bg-surface/60 transition-colors"
+                  >
+                    <span className="font-mono text-[0.58rem] text-accent font-semibold pt-px">
+                      {s.step}
+                    </span>
+                    <span className="font-mono text-xs font-semibold uppercase text-foreground group-hover:text-accent transition-colors">
+                      {s.label}
+                    </span>
+                    <span className="text-[0.7rem] text-muted-foreground leading-relaxed">
+                      {s.desc}
+                    </span>
+                  </li>
+                ))}
+              </ul>
             </div>
 
-            {/* Bottom Footer Action */}
-            <div className="mt-6 border-t border-border/80 pt-4 flex flex-col sm:flex-row items-center justify-between gap-3 font-mono text-xs">
-              <span className="text-[0.62rem] text-muted-foreground">
-                All artifacts and tools are open by default.
+            {/* Footer */}
+            <div className="mt-5 border-t border-border/70 pt-4 flex items-center justify-between gap-3 font-mono text-[0.58rem]">
+              <span className="text-muted-foreground">
+                All artifacts open by default.
               </span>
               <a
-                href="https://github.com/santusht06/chaoscomputerclub.in"
+                href="https://github.com/chaoscomputerclub/chaoscomputerclub.in"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="cursor-target shrink-0 inline-flex items-center gap-1.5 border border-border px-3 py-1.5 text-[0.62rem] tracking-[0.14em] uppercase text-foreground transition-colors hover:border-accent hover:text-accent"
+                className="cursor-target shrink-0 inline-flex items-center gap-1.5 border border-border px-3 py-1.5 tracking-[0.12em] uppercase text-foreground transition-colors hover:border-accent hover:text-accent"
               >
-                <span>[ Browse GitHub → ]</span>
+                [ GitHub → ]
               </a>
             </div>
           </div>
         </Rise>
       </div>
 
-      {/* Deep-Dive Textual Pillars: The Reality & Craft of the Commons */}
-      <div className="mt-16 md:mt-24 border-t border-border pt-12">
-        <div className="flex items-center justify-between font-mono text-[0.6rem] tracking-[0.2em] text-index uppercase mb-8">
+      {/* ── Ethics Pillars ─────────────────────────────────────────────── */}
+      <div className="mt-20 border-t border-border pt-12">
+        <div className="flex items-center justify-between font-mono text-[0.58rem] tracking-[0.2em] text-index uppercase mb-8">
           <span>ETHICS OF THE CRAFT</span>
           <span>HOW WE PRACTICE OPEN SOURCE</span>
         </div>
 
-        <div className="grid gap-8 md:grid-cols-3">
-          {PILLARS.map((p) => (
-            <div
+        <ul className="border-t border-border">
+          {PILLARS.map((p, i) => (
+            <motion.li
               key={p.idx}
-              className="border border-border/70 bg-surface/30 p-6 flex flex-col justify-between transition-colors hover:border-accent/40"
+              initial={{ opacity: 0, y: 14 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-6%" }}
+              transition={{ duration: 0.7, ease: EASE, delay: i * 0.08 }}
+              className="group grid grid-cols-1 gap-4 border-b border-border py-8 transition-colors duration-200 hover:bg-surface md:grid-cols-[3rem_14rem_1fr]"
             >
+              <span className="font-mono text-[0.6rem] tracking-[0.16em] text-index pt-px">
+                [{p.idx}]
+              </span>
               <div>
-                <div className="flex items-baseline justify-between font-mono">
-                  <span className="text-accent text-xs font-semibold">[{p.idx}]</span>
-                  <span className="text-[0.55rem] tracking-wider text-index uppercase">{p.tag}</span>
+                <div className="font-mono text-[0.52rem] tracking-wider text-accent uppercase mb-2">
+                  {p.tag}
                 </div>
-                <h3 className="mt-4 font-display text-base font-semibold text-foreground tracking-tight">
+                <h3 className="font-display text-base font-semibold text-foreground group-hover:text-accent transition-colors duration-200">
                   {p.title}
                 </h3>
-                <p className="mt-3 text-xs md:text-sm text-muted-foreground leading-relaxed font-sans">
-                  {p.body}
-                </p>
               </div>
-
-              <div className="mt-6 border-t border-border/40 pt-3 font-mono text-[0.52rem] text-accent tracking-widest uppercase">
-                CCC_PRACTICE // UNRESTRICTED
-              </div>
-            </div>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                {p.body}
+              </p>
+            </motion.li>
           ))}
+        </ul>
+
+        {/* Bottom stamp */}
+        <div className="mt-8 flex items-center gap-4 font-mono text-[0.56rem] tracking-widest text-index uppercase">
+          <span className="inline-block h-px flex-1 bg-border/60" />
+          <span>CCC // UNRESTRICTED // OPEN SOURCE</span>
+          <span className="inline-block h-px flex-1 bg-border/60" />
         </div>
       </div>
     </section>
