@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { MaskedLine, Rise } from "@/components/Motion/MaskedLine";
 import { Button } from "@/components/ui/button";
 import { Magnetic } from "@/components/Motion/Magnetic";
+import { WebThreads } from "@/components/Background/WebThreads";
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 
@@ -58,8 +59,38 @@ export function HeroModular() {
   const totalH = 7 * (U + GAP);
 
   return (
-    <section id="top" className="grain relative border-b border-border pt-28 pb-16 md:pt-36">
-      <div className="px-4 md:px-6">
+    <section
+      id="top"
+      className="grain relative overflow-hidden border-b border-border pt-28 pb-16 md:pt-36"
+    >
+      <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
+        <WebThreads
+          color1="#CBFF00"
+          color2="#000000"
+          color3="#c8cbb9"
+          speed={0.2}
+          threadCount={6}
+          frequency={5}
+          spread={0.18}
+          taper={1}
+          position={0.5}
+          fanMode="center"
+          glow={0.02}
+          falloff={0.6}
+          thickness={1.1}
+          brightness={0.6}
+          opacity={1}
+          mirror
+          shimmer={false}
+          grain={false}
+          grainIntensity={0.05}
+          mouseInteraction
+          mouseStrength={0.3}
+        />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-background/40 via-transparent to-background/80" />
+      </div>
+
+      <div className="relative z-10 px-4 md:px-6">
         <div className="flex items-baseline justify-between">
           <span className="kicker">(01 // The discovery)</span>
           <span className="kicker notes-only">[X: 0, Y: 0]</span>
