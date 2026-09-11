@@ -18,18 +18,19 @@ export function HeaderNav() {
           width="100%"
           height="auto"
           borderRadius={20}
-          borderWidth={0.07}
+          borderWidth={0.25}
           brightness={50}
           opacity={0.93}
           blur={11}
-          displace={0.5}
-          backgroundOpacity={0.1}
-          saturation={1.2}
+          displace={0.6}
+          backgroundOpacity={0.08}
+          saturation={1.5}
           distortionScale={-180}
-          redOffset={0}
-          greenOffset={10}
-          blueOffset={20}
+          redOffset={-4}
+          greenOffset={8}
+          blueOffset={18}
           mixBlendMode="difference"
+          interactive={true}
           className="w-full"
         >
           <div className="flex w-full items-center justify-between px-5 py-3 md:px-7">
