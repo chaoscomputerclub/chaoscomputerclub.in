@@ -3,6 +3,7 @@ import { LenisProvider } from "@/components/LenisProvider";
 import { CurtainPreloader } from "@/components/CurtainPreloader";
 import { NotesModeProvider } from "@/hooks/useNotesMode";
 import { NotesModeOverlay } from "@/components/Overlays/NotesModeOverlay";
+import { FluidGlassCursor } from "@/components/Cursor/FluidGlassCursor";
 import { HeaderNav } from "@/components/Navigation/HeaderNav";
 import { BackNav } from "@/components/Navigation/BackNav";
 import { HeroModular } from "@/components/Hero/HeroModular";
@@ -37,6 +38,16 @@ function Index() {
     <NotesModeProvider>
       <LenisProvider>
         <CurtainPreloader />
+        <FluidGlassCursor
+          scale={0.25}
+          ior={1.15}
+          thickness={2}
+          transmission={1}
+          roughness={0}
+          chromaticAberration={0.05}
+          anisotropy={0.01}
+          accentColor="#ccff00"
+        />
         <NotesModeOverlay />
         <HeaderNav />
         <BackNav />
