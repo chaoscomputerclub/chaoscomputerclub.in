@@ -12,22 +12,22 @@ export function HeaderNav() {
         <GlassSurface
           width="100%"
           height="auto"
-          borderRadius={14}
-          borderWidth={0.1}
-          backgroundOpacity={0.08}
+          borderRadius={20}
+          borderWidth={0.06}
+          backgroundOpacity={0.07}
           saturation={1.5}
-          brightness={50}
-          opacity={0.92}
-          blur={10}
-          displace={0.5}
-          distortionScale={-160}
+          brightness={55}
+          opacity={0.88}
+          blur={28}
+          displace={0.4}
+          distortionScale={-140}
           redOffset={0}
-          greenOffset={12}
-          blueOffset={24}
-          mixBlendMode="difference"
-          className="w-full transition-all duration-300"
+          greenOffset={8}
+          blueOffset={16}
+          mixBlendMode="screen"
+          className="w-full"
         >
-          <div className="grid w-full grid-cols-2 items-center gap-3 px-4 py-2.5 md:grid-cols-3 md:px-6">
+          <div className="grid w-full grid-cols-2 items-center gap-3 px-5 py-3 md:grid-cols-3 md:px-7">
             <a
               href="#top"
               className="font-mono text-[0.6rem] tracking-[0.2em] text-foreground uppercase transition-colors hover:text-accent"

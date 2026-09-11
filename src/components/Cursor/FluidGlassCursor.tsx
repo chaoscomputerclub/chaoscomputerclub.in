@@ -8,7 +8,7 @@ export interface FluidGlassCursorProps {
 
 export function FluidGlassCursor({
   accentColor = "#ccff00",
-  size = 72,
+  size = 68,
   showCenterReticle = true,
 }: FluidGlassCursorProps) {
   const [mounted, setMounted] = useState(false);
@@ -16,16 +16,13 @@ export function FluidGlassCursor({
   const [isHovered, setIsHovered] = useState(false);
   const [isClicking, setIsClicking] = useState(false);
 
-  // Position references for 60-120fps RAF interpolation
   const mousePos = useRef({ x: -200, y: -200 });
   const currentPos = useRef({ x: -200, y: -200 });
   const velocity = useRef({ x: 0, y: 0 });
   const cursorRef = useRef<HTMLDivElement>(null);
-  const lensRef = useRef<HTMLDivElement>(null);
   const specRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Only enable on client and pointer-fine devices (desktop/mouse)
     if (typeof window === "undefined") return;
     const isFinePointer = window.matchMedia("(pointer: fine)").matches;
     if (!isFinePointer) return;
@@ -47,7 +44,6 @@ export function FluidGlassCursor({
 
     const onPointerDown = () => setIsClicking(true);
     const onPointerUp = () => setIsClicking(false);
-
     const onPointerLeave = () => {
       setIsVisible(false);
       setIsHovered(false);
@@ -58,7 +54,6 @@ export function FluidGlassCursor({
     window.addEventListener("pointerup", onPointerUp);
     document.addEventListener("mouseleave", onPointerLeave);
 
-    // High performance RAF loop for fluid glass inertia and tilt
     let rafId: number;
     const renderLoop = () => {
       const ease = 0.18;
@@ -75,11 +70,11 @@ export function FluidGlassCursor({
         cursorRef.current.style.transform = `translate3d(${currentPos.current.x}px, ${currentPos.current.y}px, 0)`;
       }
 
-      // Tilt the specular glass reflection based on velocity
+      // Tilt specular highlight based on movement direction
       if (specRef.current) {
-        const tiltX = Math.max(-25, Math.min(25, dy * 0.4));
-        const tiltY = Math.max(-25, Math.min(25, -dx * 0.4));
-        specRef.current.style.transform = `rotateX(${tiltX}deg) rotateY(${tiltY}deg)`;
+        const tiltX = Math.max(-18, Math.min(18, dy * 0.35));
+        const tiltY = Math.max(-18, Math.min(18, -dx * 0.35));
+        specRef.current.style.transform = `translate3d(${tiltY * 0.6}px, ${tiltX * 0.6}px, 0)`;
       }
 
       rafId = requestAnimationFrame(renderLoop);
@@ -98,82 +93,120 @@ export function FluidGlassCursor({
 
   if (!mounted || !isVisible) return null;
 
-  const currentSize = isClicking ? size * 0.88 : isHovered ? size * 1.35 : size;
+  const currentSize = isClicking ? size * 0.87 : isHovered ? size * 1.3 : size;
 
   return (
     <div
       ref={cursorRef}
       aria-hidden
-      className="pointer-events-none fixed top-0 left-0 z-50 -translate-x-1/2 -translate-y-1/2 will-change-transform"
+      className="pointer-events-none fixed top-0 left-0 z-[9999] -translate-x-1/2 -translate-y-1/2 will-change-transform"
       style={{
         width: `${currentSize}px`,
         height: `${currentSize}px`,
         transition:
-          "width 200ms cubic-bezier(0.16,1,0.3,1), height 200ms cubic-bezier(0.16,1,0.3,1)",
+          "width 220ms cubic-bezier(0.16,1,0.3,1), height 220ms cubic-bezier(0.16,1,0.3,1)",
       }}
     >
-      {/* 3D Glass Lens Body with Refraction, Caustics, and Chromatic Aberration Rim */}
+      {/* ── Apple Liquid Glass Sphere ── */}
       <div
-        ref={lensRef}
         className="relative h-full w-full rounded-full"
         style={{
-          // Optical magnification & contrast of DOM elements underneath
+          /* The same ultra-transparent tint Apple uses */
+          background: "rgba(255, 255, 255, 0.07)",
+
+          /* Heavy blur + boosted saturation to catch ambient color */
           backdropFilter: isHovered
-            ? "contrast(1.3) brightness(1.15) saturate(1.2)"
-            : "contrast(1.18) brightness(1.08) saturate(1.1)",
+            ? "blur(32px) saturate(2.8) brightness(1.25) contrast(0.86)"
+            : "blur(28px) saturate(2.4) brightness(1.2) contrast(0.9)",
           WebkitBackdropFilter: isHovered
-            ? "contrast(1.3) brightness(1.15) saturate(1.2)"
-            : "contrast(1.18) brightness(1.08) saturate(1.1)",
+            ? "blur(32px) saturate(2.8) brightness(1.25) contrast(0.86)"
+            : "blur(28px) saturate(2.4) brightness(1.2) contrast(0.9)",
 
-          // Multilayer chromatic glass border: acid-lime fresnel edge + chromatic dispersion
+          /* Outer depth shadow + specular top beam (the Apple signature) */
           boxShadow: isHovered
-            ? `0 0 28px rgba(204,255,0,0.3), inset 0 0 16px rgba(255,255,255,0.25), inset 0 0 32px rgba(204,255,0,0.15)`
-            : `0 0 18px rgba(204,255,0,0.14), inset 0 0 12px rgba(255,255,255,0.15), inset 0 0 22px rgba(204,255,0,0.08)`,
+            ? [
+                "0 2px 12px rgba(0,0,0,0.35)",
+                "0 8px 32px -4px rgba(0,0,0,0.42)",
+                "0 20px 60px -10px rgba(0,0,0,0.5)",
+                "inset 0 -1px 1px rgba(0,0,0,0.22)",
+                "inset 0 1px 8px rgba(255,255,255,0.14)",
+                `inset 0 2px 0 rgba(255,255,255,0.88)`,
+              ].join(", ")
+            : [
+                "0 2px 8px rgba(0,0,0,0.28)",
+                "0 6px 24px -4px rgba(0,0,0,0.36)",
+                "0 16px 48px -8px rgba(0,0,0,0.42)",
+                "inset 0 -1px 1px rgba(0,0,0,0.18)",
+                "inset 0 1px 6px rgba(255,255,255,0.1)",
+                "inset 0 1.5px 0 rgba(255,255,255,0.72)",
+              ].join(", "),
 
+          /* Clean single-pixel frosted border */
           border: isHovered
-            ? `1.5px solid rgba(204,255,0,0.65)`
-            : `1px solid rgba(255,255,255,0.25)`,
-
-          background: isHovered
-            ? "radial-gradient(circle at 35% 35%, rgba(255,255,255,0.15), rgba(204,255,0,0.08) 45%, rgba(0,0,0,0.02) 80%)"
-            : "radial-gradient(circle at 35% 35%, rgba(255,255,255,0.12), rgba(204,255,0,0.04) 50%, rgba(0,0,0,0.01) 85%)",
+            ? "1px solid rgba(255,255,255,0.35)"
+            : "1px solid rgba(255,255,255,0.2)",
         }}
       >
-        {/* Specular 3D highlight crescent that responds to tilt */}
+        {/* ── Apple-style top specular shine stripe ── */}
         <div
-          ref={specRef}
-          className="absolute inset-1 rounded-full pointer-events-none transition-transform duration-75 ease-out"
+          className="pointer-events-none absolute inset-0 rounded-full"
           style={{
             background:
-              "linear-gradient(135deg, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0.08) 25%, transparent 60%)",
+              "linear-gradient(180deg, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0.18) 16%, rgba(255,255,255,0.05) 36%, transparent 55%)",
+            zIndex: 3,
           }}
         />
 
-        {/* Optical center focal crosshairs / precision telemetry dot */}
+        {/* ── Diffuse meniscus highlight — shifts with velocity ── */}
+        <div
+          ref={specRef}
+          className="pointer-events-none absolute rounded-full transition-transform duration-75 ease-out"
+          style={{
+            inset: "8%",
+            background:
+              "radial-gradient(circle at 35% 28%, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.15) 30%, transparent 65%)",
+            zIndex: 2,
+          }}
+        />
+
+        {/* ── Bottom catch light ── */}
+        <div
+          className="pointer-events-none absolute inset-0 rounded-full"
+          style={{
+            background:
+              "linear-gradient(180deg, transparent 55%, rgba(255,255,255,0.04) 80%, rgba(255,255,255,0.1) 100%)",
+            zIndex: 1,
+          }}
+        />
+
+        {/* ── Telemetry crosshairs + focal bead ── */}
         {showCenterReticle && (
-          <div className="absolute inset-0 grid place-items-center pointer-events-none">
-            {/* Fine horizontal & vertical hair crosshairs */}
+          <div
+            className="absolute inset-0 grid place-items-center pointer-events-none"
+            style={{ zIndex: 4 }}
+          >
             <div
-              className="absolute h-[1px] w-3 transition-opacity duration-150"
+              className="absolute h-[1px] w-3 transition-all duration-150"
               style={{
-                backgroundColor: isHovered ? accentColor : "rgba(255,255,255,0.45)",
-                opacity: isHovered ? 0.9 : 0.4,
+                backgroundColor: isHovered ? accentColor : "rgba(255,255,255,0.5)",
+                opacity: isHovered ? 0.95 : 0.45,
+                boxShadow: isHovered ? `0 0 4px ${accentColor}` : "none",
               }}
             />
             <div
-              className="absolute w-[1px] h-3 transition-opacity duration-150"
+              className="absolute w-[1px] h-3 transition-all duration-150"
               style={{
-                backgroundColor: isHovered ? accentColor : "rgba(255,255,255,0.45)",
-                opacity: isHovered ? 0.9 : 0.4,
+                backgroundColor: isHovered ? accentColor : "rgba(255,255,255,0.5)",
+                opacity: isHovered ? 0.95 : 0.45,
+                boxShadow: isHovered ? `0 0 4px ${accentColor}` : "none",
               }}
             />
-            {/* Core focal bead */}
             <div
               className="h-1.5 w-1.5 rounded-full transition-all duration-150"
               style={{
                 backgroundColor: accentColor,
-                transform: isClicking ? "scale(0.7)" : isHovered ? "scale(1.4)" : "scale(1)",
-                boxShadow: `0 0 8px ${accentColor}`,
+                transform: isClicking ? "scale(0.65)" : isHovered ? "scale(1.4)" : "scale(1)",
+                boxShadow: `0 0 8px ${accentColor}, 0 0 2px rgba(255,255,255,0.6)`,
               }}
             />
           </div>
