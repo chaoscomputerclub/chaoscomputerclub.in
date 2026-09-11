@@ -174,13 +174,36 @@ export function GlassSurface({
     return div.style.backdropFilter !== "";
   };
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const handleGlobalPointerMove = (e: PointerEvent) => {
+      if (!containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      const x = ((e.clientX - rect.left) / rect.width) * 100;
+      const y = ((e.clientY - rect.top) / rect.height) * 100;
+
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      const rad = Math.atan2(e.clientY - centerY, e.clientX - centerX);
+      const angle = (rad * 180) / Math.PI + 90;
+
+      containerRef.current.style.setProperty("--mouse-x", `${x.toFixed(2)}%`);
+      containerRef.current.style.setProperty("--mouse-y", `${y.toFixed(2)}%`);
+      containerRef.current.style.setProperty("--rainbow-angle", `${angle.toFixed(1)}deg`);
+    };
+
+    window.addEventListener("pointermove", handleGlobalPointerMove, { passive: true });
+    return () => window.removeEventListener("pointermove", handleGlobalPointerMove);
+  }, []);
+
   const handleMouseMove = (e: MouseEvent<HTMLDivElement>) => {
     const rect = containerRef.current?.getBoundingClientRect();
     if (!rect) return;
     const x = ((e.clientX - rect.left) / rect.width) * 100;
     const y = ((e.clientY - rect.top) / rect.height) * 100;
-    containerRef.current?.style.setProperty("--mouse-x", `${x}%`);
-    containerRef.current?.style.setProperty("--mouse-y", `${y}%`);
+    containerRef.current?.style.setProperty("--mouse-x", `${x.toFixed(2)}%`);
+    containerRef.current?.style.setProperty("--mouse-y", `${y.toFixed(2)}%`);
   };
 
   const containerStyle: React.CSSProperties & Record<string, unknown> = {
@@ -264,7 +287,11 @@ export function GlassSurface({
           </filter>
         </defs>
       </svg>
-      {/* Interactive caustic light sheen that catches illumination */}
+      {/* Prismatic Rainbow Refractive Rim following border-radius */}
+      <div className="glass-surface__rainbow-rim" aria-hidden />
+      {/* Prismatic edge caustics */}
+      <div className="glass-surface__prism-edge" aria-hidden />
+      {/* Interactive rainbow caustic light sheen that catches illumination */}
       <div className="glass-surface__sheen" aria-hidden />
       <div className="glass-surface__content">{children}</div>
     </div>
