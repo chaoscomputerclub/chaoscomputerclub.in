@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { useLenisScroll } from "@/components/LenisProvider";
 
 interface NavItem {
   id: string;
@@ -32,6 +33,23 @@ const NAV_LINKS: NavItem[] = [
 export function HeaderNav() {
   const [activeTab, setActiveTab] = useState<string>("#top");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const lenis = useLenisScroll();
+
+  // Smooth scroll handler — uses Lenis when available, CSS fallback otherwise
+  const scrollTo = useCallback(
+    (id: string) => {
+      if (id === "#top") {
+        lenis ? lenis.scrollTo(0, { duration: 1.4 }) : window.scrollTo({ top: 0, behavior: "smooth" });
+      } else {
+        const el = document.querySelector(id);
+        if (!el) return;
+        lenis
+          ? lenis.scrollTo(el as HTMLElement, { offset: -96, duration: 1.4 })
+          : el.scrollIntoView({ behavior: "smooth" });
+      }
+    },
+    [lenis]
+  );
 
   useEffect(() => {
     const handleScroll = () => {
@@ -65,6 +83,7 @@ export function HeaderNav() {
         <a
           href="#top"
           aria-label="Chaos Computer Club Home"
+          onClick={(e) => { e.preventDefault(); scrollTo("#top"); }}
           className="group flex items-center gap-3 sm:gap-3.5 font-mono text-foreground transition-colors hover:text-accent select-none shrink-0"
         >
           <img
@@ -89,7 +108,7 @@ export function HeaderNav() {
               <a
                 key={link.id}
                 href={link.id}
-                onClick={() => setActiveTab(link.id)}
+                onClick={(e) => { e.preventDefault(); setActiveTab(link.id); scrollTo(link.id); }}
                 className={`group flex items-baseline font-mono uppercase whitespace-nowrap transition-colors ${
                   isActive
                     ? "text-accent font-semibold"
@@ -120,6 +139,7 @@ export function HeaderNav() {
         <div className="flex items-center gap-3 sm:gap-4 shrink-0 font-mono text-xs">
           <a
             href="#manifesto"
+            onClick={(e) => { e.preventDefault(); scrollTo("#manifesto"); }}
             className="rounded-none border border-border bg-surface/50 px-3.5 sm:px-4 py-2 font-mono text-xs tracking-[0.14em] text-foreground uppercase transition-colors hover:border-accent hover:text-accent"
           >
             [ Enter the network → ]
@@ -150,9 +170,11 @@ export function HeaderNav() {
             <a
               key={link.id}
               href={link.id}
-              onClick={() => {
+              onClick={(e) => {
+                e.preventDefault();
                 setActiveTab(link.id);
                 setMobileMenuOpen(false);
+                scrollTo(link.id);
               }}
               className={`group flex items-baseline rounded-none px-2 py-2 font-mono uppercase tracking-wider transition-colors ${
                 activeTab === link.id
