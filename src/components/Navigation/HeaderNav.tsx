@@ -1,15 +1,21 @@
 import { useState, useEffect } from "react";
 
-const NAV_LINKS = [
-  { id: "#top", label: "00 / Top" },
-  { id: "#about", label: "00 / About" },
-  { id: "#gap", label: "01 / The gap" },
-  { id: "#forge", label: "02 / The forge" },
-  { id: "#chaos", label: "03 / Chaos" },
-  { id: "#codebase", label: "04 / Codebase" },
-  { id: "#values", label: "05 / Values" },
-  { id: "#telemetry", label: "06 / Telemetry" },
-  { id: "#manifesto", label: "07 / Resolution" },
+interface NavItem {
+  id: string;
+  num: string;
+  name: string;
+}
+
+const NAV_LINKS: NavItem[] = [
+  { id: "#top", num: "00", name: "Top" },
+  { id: "#about", num: "00", name: "About" },
+  { id: "#gap", num: "01", name: "The gap" },
+  { id: "#forge", num: "02", name: "The forge" },
+  { id: "#chaos", num: "03", name: "Chaos" },
+  { id: "#codebase", num: "04", name: "Codebase" },
+  { id: "#values", num: "05", name: "Values" },
+  { id: "#telemetry", num: "06", name: "Telemetry" },
+  { id: "#manifesto", num: "07", name: "Resolution" },
 ];
 
 /**
@@ -76,7 +82,7 @@ export function HeaderNav() {
         </a>
 
         {/* Center / Navigation Links: Clean simple text links on xl+ displays */}
-        <nav className="hidden xl:flex items-center gap-5 2xl:gap-8" aria-label="Main Navigation">
+        <nav className="hidden xl:flex items-center gap-5 2xl:gap-7" aria-label="Main Navigation">
           {NAV_LINKS.map((link) => {
             const isActive = activeTab === link.id;
             return (
@@ -84,13 +90,27 @@ export function HeaderNav() {
                 key={link.id}
                 href={link.id}
                 onClick={() => setActiveTab(link.id)}
-                className={`font-mono text-xs tracking-[0.14em] uppercase whitespace-nowrap transition-colors ${
+                className={`group flex items-baseline font-mono uppercase whitespace-nowrap transition-colors ${
                   isActive
                     ? "text-accent font-semibold"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
-                {link.label}
+                <span
+                  className={`text-[0.58rem] tracking-wider transition-colors ${
+                    isActive
+                      ? "text-accent/90"
+                      : "text-muted-foreground/60 group-hover:text-foreground/70"
+                  }`}
+                >
+                  {link.num}
+                </span>
+                <span className="text-[0.5rem] opacity-35 mx-1 select-none">
+                  /
+                </span>
+                <span className="text-xs tracking-[0.12em]">
+                  {link.name}
+                </span>
               </a>
             );
           })}
@@ -134,13 +154,27 @@ export function HeaderNav() {
                 setActiveTab(link.id);
                 setMobileMenuOpen(false);
               }}
-              className={`rounded-none px-2 py-2 font-mono text-xs tracking-wider uppercase transition-colors ${
+              className={`group flex items-baseline rounded-none px-2 py-2 font-mono uppercase tracking-wider transition-colors ${
                 activeTab === link.id
                   ? "text-accent font-semibold"
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              {link.label}
+              <span
+                className={`text-[0.58rem] tracking-wider transition-colors ${
+                  activeTab === link.id
+                    ? "text-accent/90"
+                    : "text-muted-foreground/60 group-hover:text-foreground/70"
+                }`}
+              >
+                {link.num}
+              </span>
+              <span className="text-[0.5rem] opacity-35 mx-1.5 select-none">
+                /
+              </span>
+              <span className="text-xs tracking-wider">
+                {link.name}
+              </span>
             </a>
           ))}
         </div>
