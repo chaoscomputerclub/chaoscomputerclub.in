@@ -20,6 +20,7 @@ uniform float u_roundness;
 uniform float u_borderSize;
 uniform float u_circleSize;
 uniform float u_circleEdge;
+uniform vec3 u_color;
 
 #ifndef PI
 #define PI 3.1415926535897932384626433832795
@@ -116,7 +117,7 @@ void main() {
     sdf = fill(sdf, 0.05, sdfCircle) * 1.4;
   }
   
-  vec3 color = vec3(1.0);
+  vec3 color = u_color;
   float alpha = sdf;
   gl_FragColor = vec4(color.rgb, alpha);
 }
@@ -131,6 +132,7 @@ export interface ShapeBlurProps {
   borderSize?: number;
   circleSize?: number;
   circleEdge?: number;
+  color?: string;
   style?: React.CSSProperties;
 }
 
@@ -143,6 +145,7 @@ export function ShapeBlur({
   borderSize = 0.05,
   circleSize = 0.3,
   circleEdge = 0.5,
+  color = "#ffffff",
   style = {},
 }: ShapeBlurProps) {
   const mountRef = useRef<HTMLDivElement | null>(null);
@@ -155,19 +158,23 @@ export function ShapeBlur({
     let active = true;
     let animationFrameId: number;
     let time = 0;
-    let lastTime = 0;
+    let lastTime = performance.now() * 0.001;
 
     const vMouse = new THREE.Vector2();
     const vMouseDamp = new THREE.Vector2();
     const vResolution = new THREE.Vector2();
-    let w = 1;
-    let h = 1;
+    let w = mount.clientWidth || 1;
+    let h = mount.clientHeight || 1;
 
     const scene = new THREE.Scene();
     const camera = new THREE.OrthographicCamera();
     camera.position.z = 1;
 
-    const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, powerPreference: "high-performance" });
+    const renderer = new THREE.WebGLRenderer({
+      alpha: true,
+      antialias: true,
+      powerPreference: "high-performance",
+    });
     renderer.setClearColor(0x000000, 0);
     mount.appendChild(renderer.domElement);
 
@@ -184,6 +191,7 @@ export function ShapeBlur({
         u_borderSize: { value: borderSize },
         u_circleSize: { value: circleSize },
         u_circleEdge: { value: circleEdge },
+        u_color: { value: new THREE.Color(color) },
       },
       defines: { VAR: variation },
       transparent: true,
@@ -195,17 +203,18 @@ export function ShapeBlur({
     scene.add(quad);
 
     const onPointerMove = (e: MouseEvent | PointerEvent) => {
+      if (!mount) return;
       const rect = mount.getBoundingClientRect();
       vMouse.set(e.clientX - rect.left, e.clientY - rect.top);
     };
 
-    document.addEventListener("mousemove", onPointerMove);
-    document.addEventListener("pointermove", onPointerMove);
+    window.addEventListener("mousemove", onPointerMove, { passive: true });
+    window.addEventListener("pointermove", onPointerMove, { passive: true });
 
     const resize = () => {
       if (!active || !mount) return;
-      w = mount.clientWidth;
-      h = mount.clientHeight;
+      w = mount.clientWidth || 1;
+      h = mount.clientHeight || 1;
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       renderer.setSize(w, h);
       renderer.setPixelRatio(dpr);
@@ -231,7 +240,7 @@ export function ShapeBlur({
     const update = () => {
       if (!active) return;
       time = performance.now() * 0.001;
-      const dt = time - lastTime;
+      const dt = Math.min(time - lastTime, 0.1);
       lastTime = time;
 
       (["x", "y"] as const).forEach((k) => {
@@ -249,8 +258,8 @@ export function ShapeBlur({
       cancelAnimationFrame(animationFrameId);
       window.removeEventListener("resize", resize);
       ro.disconnect();
-      document.removeEventListener("mousemove", onPointerMove);
-      document.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("mousemove", onPointerMove);
+      window.removeEventListener("pointermove", onPointerMove);
       if (mount.contains(renderer.domElement)) {
         mount.removeChild(renderer.domElement);
       }
@@ -271,9 +280,16 @@ export function ShapeBlur({
     mat.uniforms.u_borderSize.value = borderSize;
     mat.uniforms.u_circleSize.value = circleSize;
     mat.uniforms.u_circleEdge.value = circleEdge;
-  }, [pixelRatioProp, shapeSize, roundness, borderSize, circleSize, circleEdge]);
+    mat.uniforms.u_color.value.set(color);
+  }, [pixelRatioProp, shapeSize, roundness, borderSize, circleSize, circleEdge, color]);
 
-  return <div className={className} ref={mountRef} style={{ width: "100%", height: "100%", ...style }} />;
+  return (
+    <div
+      className={`w-full h-full ${className}`}
+      ref={mountRef}
+      style={{ width: "100%", height: "100%", ...style }}
+    />
+  );
 }
 
 export default ShapeBlur;
