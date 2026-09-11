@@ -5,7 +5,6 @@ import { NotesModeProvider } from "@/hooks/useNotesMode";
 import { NotesModeOverlay } from "@/components/Overlays/NotesModeOverlay";
 import { FluidGlassCursor } from "@/components/Cursor/FluidGlassCursor";
 import { HeaderNav } from "@/components/Navigation/HeaderNav";
-import { BackNav } from "@/components/Navigation/BackNav";
 import { HeroModular } from "@/components/Hero/HeroModular";
 import { BlockVerticalSpec } from "@/components/Blocks/BlockVerticalSpec";
 import { BlockHorizontalReel } from "@/components/Blocks/BlockHorizontalReel";
@@ -38,10 +37,9 @@ function Index() {
     <NotesModeProvider>
       <LenisProvider>
         <CurtainPreloader />
-        <FluidGlassCursor accentColor="#ccff00" size={72} />
+        <FluidGlassCursor accentColor="#ccff00" size={68} />
         <NotesModeOverlay />
         <HeaderNav />
-        <BackNav />
         <main className="min-h-screen bg-background">
           <HeroModular />
           <BlockVerticalSpec />

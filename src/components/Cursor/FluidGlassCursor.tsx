@@ -112,31 +112,29 @@ export function FluidGlassCursor({
       <div
         className="relative h-full w-full rounded-full"
         style={{
-          background: "rgba(255, 255, 255, 0.08)",
+          background: "rgba(255, 255, 255, 0.05)",
           backdropFilter: isHovered
-            ? "blur(16px) saturate(1.8) brightness(1.15)"
-            : "blur(12px) saturate(1.5) brightness(1.1)",
+            ? "blur(14px) saturate(2.2) brightness(1.28) contrast(1.05)"
+            : "blur(10px) saturate(1.8) brightness(1.22) contrast(1.04)",
           WebkitBackdropFilter: isHovered
-            ? "blur(16px) saturate(1.8) brightness(1.15)"
-            : "blur(12px) saturate(1.5) brightness(1.1)",
+            ? "blur(14px) saturate(2.2) brightness(1.28) contrast(1.05)"
+            : "blur(10px) saturate(1.8) brightness(1.22) contrast(1.04)",
           boxShadow: isHovered
             ? [
-                "0 4px 20px rgba(0,0,0,0.35)",
-                "0 12px 36px -4px rgba(0,0,0,0.45)",
-                "inset 0 1.5px 0 rgba(255,255,255,0.85)",
-                "inset 0 -1.5px 0 rgba(255,255,255,0.2)",
-                "inset 0 0 12px rgba(255,255,255,0.1)",
+                "0 8px 30px rgba(0,0,0,0.45)",
+                "0 0 15px rgba(255,255,255,0.2)",
+                "inset 0 1.5px 0 rgba(255,255,255,0.9)",
+                "inset 0 -1.5px 0 rgba(255,255,255,0.3)",
               ].join(", ")
             : [
-                "0 2px 10px rgba(0,0,0,0.25)",
-                "0 6px 20px -4px rgba(0,0,0,0.35)",
-                "inset 0 1px 0 rgba(255,255,255,0.7)",
-                "inset 0 -1px 0 rgba(255,255,255,0.15)",
-                "inset 0 0 8px rgba(255,255,255,0.08)",
+                "0 4px 18px rgba(0,0,0,0.35)",
+                "0 0 10px rgba(255,255,255,0.15)",
+                "inset 0 1.2px 0 rgba(255,255,255,0.8)",
+                "inset 0 -1px 0 rgba(255,255,255,0.2)",
               ].join(", "),
           border: isHovered
-            ? "1px solid rgba(255,255,255,0.35)"
-            : "1px solid rgba(255,255,255,0.2)",
+            ? "1px solid rgba(255,255,255,0.45)"
+            : "1px solid rgba(255,255,255,0.3)",
         }}
       >
         {/* ── Top Specular Light Shelf ── */}
