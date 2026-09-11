@@ -28,6 +28,8 @@ export interface ParticleTextProps {
   ease?: number;
   autoFit?: boolean;
   modular?: boolean;
+  /** Cap the rendered text width (CSS px at 1× DPR). Canvas stays full-size so scattered particles never clip. */
+  textMaxWidthPx?: number;
 }
 
 interface Particle {
@@ -65,6 +67,7 @@ export const ParticleText: FC<ParticleTextProps> = ({
   ease = 0.07,
   autoFit = true,
   modular,
+  textMaxWidthPx,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -146,8 +149,12 @@ export const ParticleText: FC<ParticleTextProps> = ({
         const totalW = WORD.length * glyphW + (WORD.length - 1) * letterGap; // 331
         const totalH = 7 * (U + GAP); // 77
 
-        // Exact 100% scale without artificial padding so font size matches original SVG exactly
-        const scale = Math.min(canvas.width / totalW, canvas.height / totalH);
+        // Cap to textMaxWidthPx (CSS px) so text stays the same visual size even when the
+        // canvas is expanded to full-screen for scatter room. Falls back to canvas.width.
+        const maxW = textMaxWidthPx != null
+          ? Math.min(canvas.width, textMaxWidthPx * dpr)
+          : canvas.width;
+        const scale = Math.min(maxW / totalW, canvas.height / totalH);
 
         const renderedW = totalW * scale;
         const renderedH = totalH * scale;
@@ -350,6 +357,7 @@ export const ParticleText: FC<ParticleTextProps> = ({
     ease,
     autoFit,
     modular,
+    textMaxWidthPx,
     calculateFontSize,
   ]);
 

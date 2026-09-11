@@ -92,6 +92,7 @@ export function HeroModular() {
             mouseControls={{ enabled: true, radius: 160, strength: 5.5 }}
             className="h-full w-full drop-shadow-[0_0_50px_rgba(204,255,0,0.22)]"
             modular
+            textMaxWidthPx={1152}
           />
         ) : (
           /* SSR fallback — centers the SVG glyph in the full viewport */
