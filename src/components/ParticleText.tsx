@@ -34,7 +34,7 @@ interface Particle {
   size: number;
 }
 
-/** 5x7 modular matrices for the iconic CCC "CHAOS" typography */
+/** 5x7 modular matrices — each glyph is assembled from geometric computer pixel blocks */
 const GLYPHS: Record<string, string[]> = {
   C: ["01110", "10001", "10000", "10000", "10000", "10001", "01110"],
   H: ["10001", "10001", "10001", "11111", "10001", "10001", "10001"],
@@ -46,16 +46,16 @@ const GLYPHS: Record<string, string[]> = {
 export const ParticleText: FC<ParticleTextProps> = ({
   text = "CHAOS",
   className = "",
-  colors = ["#ffffff", "#ffffff", "#ffffff", "#e6e6e6", "#CCFF00"],
-  particleSize = 2,
-  particleGap = 2,
-  mouseControls = { enabled: true, radius: 160, strength: 5 },
+  colors = ["#ffffff", "#ffffff", "#ffffff", "#ffffff", "#CCFF00"],
+  particleSize = 2.4,
+  particleGap = 0.6,
+  mouseControls = { enabled: true, radius: 160, strength: 5.5 },
   backgroundColor = "transparent",
   fontFamily = "modular",
   fontSize = 200,
   fontWeight = "bold",
-  friction = 0.78,
-  ease = 0.06,
+  friction = 0.8,
+  ease = 0.07,
   autoFit = true,
   modular,
 }) => {
@@ -76,7 +76,7 @@ export const ParticleText: FC<ParticleTextProps> = ({
   const calculateFontSize = useCallback(
     (ctx: CanvasRenderingContext2D, str: string, width: number, height: number): number => {
       const dpr = dprRef.current;
-      const padding = 32 * dpr;
+      const padding = 20 * dpr;
       const availW = Math.max(10, width - 2 * padding);
       const availH = Math.max(10, height - 2 * padding);
       let minSize = 10 * dpr;
@@ -130,7 +130,7 @@ export const ParticleText: FC<ParticleTextProps> = ({
       offCtx.clearRect(0, 0, offscreen.width, offscreen.height);
 
       if (useModular && text.toUpperCase() === "CHAOS") {
-        // Draw iconic 5x7 modular chamfered matrix font
+        // Exact original 5x7 modular computer pixel matrix font
         const U = 10;
         const GAP = 1;
         const WORD = "CHAOS";
@@ -139,10 +139,8 @@ export const ParticleText: FC<ParticleTextProps> = ({
         const totalW = WORD.length * glyphW + (WORD.length - 1) * letterGap; // 331
         const totalH = 7 * (U + GAP); // 77
 
-        const targetPadding = 24 * dpr;
-        const availW = canvas.width - targetPadding * 2;
-        const availH = canvas.height - targetPadding * 2;
-        const scale = Math.min(availW / totalW, availH / totalH);
+        // Exact 100% scale without artificial padding so font size matches original SVG exactly
+        const scale = Math.min(canvas.width / totalW, canvas.height / totalH);
 
         const renderedW = totalW * scale;
         const renderedH = totalH * scale;
@@ -199,7 +197,7 @@ export const ParticleText: FC<ParticleTextProps> = ({
         offCtx.fillText(text, canvas.width / 2, canvas.height / 2);
       }
 
-      // Sample pixels to generate particles
+      // Sample pixels into crisp computer pixel particles
       const imgData = offCtx.getImageData(0, 0, canvas.width, canvas.height).data;
       const particles: Particle[] = [];
       const step = Math.max(1, Math.floor((particleSize + particleGap) * dpr));
@@ -210,16 +208,14 @@ export const ParticleText: FC<ParticleTextProps> = ({
           const alpha = imgData[alphaIdx] ?? 0;
           if (alpha > 120) {
             const pickedColor = colors[Math.floor(Math.random() * colors.length)] || "#ffffff";
-            // Start scattered for explosive initial assembly, then spring to home position
-            const angle = Math.random() * Math.PI * 2;
-            const dist = (Math.random() * 0.3 + 0.1) * Math.max(canvas.width, canvas.height);
+            // No initial blast — starts completely settled at rest, animates only on hover
             particles.push({
-              x: col + Math.cos(angle) * dist,
-              y: row + Math.sin(angle) * dist,
+              x: col,
+              y: row,
               originX: col,
               originY: row,
-              vx: (Math.random() - 0.5) * 4,
-              vy: (Math.random() - 0.5) * 4,
+              vx: 0,
+              vy: 0,
               color: pickedColor,
               size: particleSize * dpr,
             });
@@ -231,7 +227,7 @@ export const ParticleText: FC<ParticleTextProps> = ({
 
     init();
 
-    // Animation render loop
+    // High performance animation render loop
     const animate = () => {
       const dpr = dprRef.current;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -243,7 +239,7 @@ export const ParticleText: FC<ParticleTextProps> = ({
 
       const particles = particlesRef.current;
       const mouse = mouseRef.current;
-      const { radius = 160, strength = 5, enabled = true } = mouseControls;
+      const { radius = 160, strength = 5.5, enabled = true } = mouseControls;
       const mouseRadius = radius * dpr;
 
       for (const p of particles) {
@@ -274,6 +270,14 @@ export const ParticleText: FC<ParticleTextProps> = ({
         p.x += p.vx;
         p.y += p.vy;
 
+        // Settle smoothly when very close to origin and stopped
+        if (!mouse.isActive && Math.abs(p.vx) < 0.005 && Math.abs(dx) < 0.05) {
+          p.x = p.originX;
+          p.y = p.originY;
+          p.vx = 0;
+          p.vy = 0;
+        }
+
         ctx.fillStyle = p.color;
         ctx.fillRect(Math.round(p.x), Math.round(p.y), p.size, p.size);
       }
@@ -294,13 +298,11 @@ export const ParticleText: FC<ParticleTextProps> = ({
       const clientX = "touches" in evt ? evt.touches[0]?.clientX ?? 0 : evt.clientX;
       const clientY = "touches" in evt ? evt.touches[0]?.clientY ?? 0 : evt.clientY;
 
-      // Expand active sensitivity area slightly beyond bounds
-      const margin = 80;
       if (
-        clientX >= rect.left - margin &&
-        clientX <= rect.right + margin &&
-        clientY >= rect.top - margin &&
-        clientY <= rect.bottom + margin
+        clientX >= rect.left &&
+        clientX <= rect.right &&
+        clientY >= rect.top &&
+        clientY <= rect.bottom
       ) {
         mouseRef.current.x = clientX - rect.left;
         mouseRef.current.y = clientY - rect.top;

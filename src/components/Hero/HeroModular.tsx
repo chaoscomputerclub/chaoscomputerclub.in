@@ -78,12 +78,12 @@ export function HeroModular() {
           {mounted ? (
             <ParticleText
               text="CHAOS"
-              colors={["#ffffff", "#ffffff", "#ffffff", "#e8e8e8", "#CCFF00"]}
-              particleSize={2.2}
-              particleGap={2}
-              friction={0.78}
-              ease={0.06}
-              mouseControls={{ enabled: true, radius: 170, strength: 5.5 }}
+              colors={["#ffffff", "#ffffff", "#ffffff", "#ffffff", "#CCFF00"]}
+              particleSize={2.4}
+              particleGap={0.6}
+              friction={0.8}
+              ease={0.07}
+              mouseControls={{ enabled: true, radius: 160, strength: 5.5 }}
               className="w-full aspect-[331/77] drop-shadow-[0_0_50px_rgba(204,255,0,0.22)]"
               modular
             />
