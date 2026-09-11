@@ -1,9 +1,22 @@
-import { MaskedLine, Rise } from "@/components/Motion/MaskedLine";
+import BlurText from "@/components/Motion/BlurText";
+import { Rise } from "@/components/Motion/MaskedLine";
 
 const ROWS = [
-  { n: "4.1", k: "Repository", v: "Every experiment is committed, reviewed, and kept." },
-  { n: "4.2", k: "Peers", v: "Whoever shows up is the club. Merit decides the rest." },
-  { n: "4.3", k: "Teaching", v: "Mastery is explaining it to someone who started today." },
+  {
+    n: "4.1",
+    k: "Knowledge Flow",
+    v: "Knowledge should move. Experiments should be shareable, tools reusable, and discoveries passed forward.",
+  },
+  {
+    n: "4.2",
+    k: "Participation",
+    v: "Whoever shows up is the club. The work speaks louder than pedigree.",
+  },
+  {
+    n: "4.3",
+    k: "Open Artifacts",
+    v: "Real mastery is teaching someone who started today so the community learns from every failure.",
+  },
 ];
 
 /** Block 04 — asymmetric split: typographic column + wireframe screens. */
@@ -11,15 +24,20 @@ export function BlockScreensSplit() {
   return (
     <section id="codebase" className="border-b border-border px-4 py-20 md:px-6 md:py-28">
       <div className="flex items-baseline justify-between">
-        <span className="kicker">(The record)</span>
+        <span className="kicker">(04 // The codebase)</span>
         <span className="font-mono text-[0.6rem] tracking-[0.2em] text-index">INDEX 4.0</span>
       </div>
 
       <div className="mt-10 grid gap-10 md:grid-cols-12">
         <div className="md:col-span-5">
-          <MaskedLine as="h2" className="text-3xl font-medium md:text-4xl">
-            The Codebase
-          </MaskedLine>
+          <BlurText
+            text="How We Work"
+            delay={50}
+            animateBy="letters"
+            direction="top"
+            as="h2"
+            className="text-3xl font-medium md:text-4xl"
+          />
           <ul className="mt-8 border-t border-border">
             {ROWS.map((r, i) => (
               <li key={r.n} className="grid grid-cols-[3rem_1fr] gap-4 border-b border-border py-5">

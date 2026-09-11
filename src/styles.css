@@ -223,7 +223,6 @@
 .reel__track {
   display: flex;
   width: max-content;
-  animation: ccc-marquee 26s linear infinite;
   will-change: transform;
 }
 

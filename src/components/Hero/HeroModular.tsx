@@ -1,11 +1,8 @@
-import { useState } from "react";
-import { motion } from "framer-motion";
+import { useState, useEffect } from "react";
 import { Topography } from "@/components/Background/Topography";
-import { ShapeBlur } from "@/components/Hero/ShapeBlur";
+import { ChaosTextBlur } from "@/components/Hero/ChaosTextBlur";
 
-const EASE = [0.16, 1, 0.3, 1] as const;
-
-/** 5x7 modular matrices — each glyph is assembled from geometric blocks. */
+/** 5x7 modular matrices for SSR fallback */
 const GLYPHS: Record<string, string[]> = {
   C: ["01110", "10001", "10000", "10000", "10000", "10001", "01110"],
   H: ["10001", "10001", "10001", "11111", "10001", "10001", "10001"],
@@ -15,44 +12,17 @@ const GLYPHS: Record<string, string[]> = {
 };
 
 const WORD = "CHAOS";
-const U = 10; // unit size
+const U = 10;
 const GAP = 1;
 
-function Glyph({ char, offset, index }: { char: string; offset: number; index: number }) {
-  const rows = GLYPHS[char]!;
-  const cells: { x: number; y: number; i: number }[] = [];
-  rows.forEach((row, y) =>
-    row.split("").forEach((v, x) => {
-      if (v === "1") cells.push({ x, y, i: cells.length });
-    }),
-  );
-
-  return (
-    <g transform={`translate(${offset} 0)`}>
-      {cells.map((c, i) => {
-        const chamfer = (c.x + c.y + index) % 4 === 0;
-        const px = c.x * (U + GAP);
-        const py = c.y * (U + GAP);
-        const points = chamfer
-          ? `${px},${py} ${px + U - 3},${py} ${px + U},${py + 3} ${px + U},${py + U} ${px},${py + U}`
-          : `${px},${py} ${px + U},${py} ${px + U},${py + U} ${px},${py + U}`;
-        return (
-          <motion.polygon
-            key={`${c.x}-${c.y}`}
-            points={points}
-            fill="currentColor"
-            initial={{ opacity: 0, y: 14 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, ease: EASE, delay: 0.35 + (index * 8 + i) * 0.012 }}
-          />
-        );
-      })}
-    </g>
-  );
-}
-
 export function HeroModular() {
-  const [isHovered, setIsHovered] = useState(true);
+  const [isHovered, setIsHovered] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const glyphW = 5 * (U + GAP);
   const letterGap = U * 1.4;
   const totalW = WORD.length * glyphW + (WORD.length - 1) * letterGap;
@@ -96,35 +66,56 @@ export function HeroModular() {
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-background/40 via-transparent to-background/80" />
       </div>
 
-      {/* React Bits ShapeBlur WebGL Layer on Hover (Full Hero Viewport) */}
-      <div
-        className={`pointer-events-none absolute inset-0 z-10 transition-opacity duration-300 ease-out ${
-          isHovered ? "opacity-100" : "opacity-0"
-        }`}
-      >
-        <ShapeBlur
-          variation={0}
-          shapeSize={1.15}
-          roundness={0.45}
-          borderSize={0.05}
-          circleSize={0.3}
-          circleEdge={0.8}
-          color="#ffffff"
-        />
-      </div>
-
-      {/* Hero content: Pure "CHAOS" geometric matrix centered full-screen */}
-      <div className="pointer-events-none relative z-20 w-full px-4 pt-16 md:px-8 md:pt-20">
-        <div data-spec-box className="mx-auto max-w-6xl" aria-label="Chaos" role="img">
-          <svg
-            viewBox={`0 0 ${totalW} ${totalH}`}
-            className="w-full text-foreground drop-shadow-[0_0_50px_rgba(204,255,0,0.22)]"
-            preserveAspectRatio="xMidYMid meet"
-          >
-            {WORD.split("").map((c, i) => (
-              <Glyph key={i} char={c} index={i} offset={i * (glyphW + letterGap)} />
-            ))}
-          </svg>
+      {/* Hero content: Pure "CHAOS" interactive text with cinematic optical blur on hover */}
+      <div className="relative z-20 w-full px-4 pt-16 md:px-8 md:pt-20">
+        <div
+          data-spec-box
+          className="cursor-target mx-auto max-w-6xl relative cursor-crosshair"
+          aria-label="Chaos"
+          role="img"
+          onPointerEnter={() => setIsHovered(true)}
+        >
+          {mounted ? (
+            <ChaosTextBlur
+              isHovered={isHovered}
+              color="#ffffff"
+              accentColor="#CCFF00"
+              className="w-full drop-shadow-[0_0_50px_rgba(204,255,0,0.22)]"
+            />
+          ) : (
+            <svg
+              viewBox={`0 0 ${totalW} ${totalH}`}
+              className="w-full text-foreground drop-shadow-[0_0_50px_rgba(204,255,0,0.22)]"
+              preserveAspectRatio="xMidYMid meet"
+            >
+              {WORD.split("").map((c, charIdx) => {
+                const rows = GLYPHS[c] || [];
+                const offset = charIdx * (glyphW + letterGap);
+                return (
+                  <g key={charIdx} transform={`translate(${offset} 0)`}>
+                    {rows.flatMap((row, y) =>
+                      row.split("").map((v, x) => {
+                        if (v !== "1") return null;
+                        const chamfer = (x + y + charIdx) % 4 === 0;
+                        const px = x * (U + GAP);
+                        const py = y * (U + GAP);
+                        const points = chamfer
+                          ? `${px},${py} ${px + U - 3},${py} ${px + U},${py + 3} ${px + U},${py + U} ${px},${py + U}`
+                          : `${px},${py} ${px + U},${py} ${px + U},${py + U} ${px},${py + U}`;
+                        return (
+                          <polygon
+                            key={`${x}-${y}`}
+                            points={points}
+                            fill="currentColor"
+                          />
+                        );
+                      })
+                    )}
+                  </g>
+                );
+              })}
+            </svg>
+          )}
         </div>
       </div>
     </section>

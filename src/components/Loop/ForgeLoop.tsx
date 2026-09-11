@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { MaskedLine } from "@/components/Motion/MaskedLine";
+import BlurText from "@/components/Motion/BlurText";
 import { TelemetryClock } from "@/components/Hero/TelemetryClock";
 import { cn } from "@/lib/utils";
 
@@ -9,7 +9,7 @@ const STAGES = [
   { k: "Compete", d: "Put it against a clock and a better opponent." },
   { k: "Fail", d: "Watch it break at scale." },
   { k: "Learn", d: "Find the exact reason it broke." },
-  { k: "Share", d: "Hand the finding to the next person." },
+  { k: "Share", d: "Turn individual insight into community knowledge." },
   { k: "Repeat", d: "The cycle is the community." },
 ];
 
@@ -26,9 +26,14 @@ export function ForgeLoop() {
 
       <div className="mt-10 grid gap-12 md:grid-cols-12">
         <div className="md:col-span-6">
-          <MaskedLine as="h2" className="text-3xl font-medium md:text-4xl">
-            The Forge Loop
-          </MaskedLine>
+          <BlurText
+            text="The Forge Loop"
+            delay={45}
+            animateBy="letters"
+            direction="top"
+            as="h2"
+            className="text-3xl font-medium md:text-4xl"
+          />
           <ol className="mt-8 border-t border-border">
             {STAGES.map((s, i) => (
               <li key={s.k}>

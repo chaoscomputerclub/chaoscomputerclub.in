@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { MaskedLine, Rise } from "@/components/Motion/MaskedLine";
+import BlurText from "@/components/Motion/BlurText";
+import { Rise } from "@/components/Motion/MaskedLine";
 import { Button } from "@/components/ui/button";
 import { Magnetic } from "@/components/Motion/Magnetic";
 
@@ -15,9 +16,14 @@ export function ManifestoFooter() {
         <span className="font-mono text-[0.6rem] tracking-[0.2em] text-index">INDEX 7.0</span>
       </div>
 
-      <MaskedLine as="h2" className="mt-8 max-w-4xl text-4xl font-medium md:text-5xl">
-        We don&apos;t think computer science belongs exclusively inside classrooms.
-      </MaskedLine>
+      <BlurText
+        text="We don't think computer science belongs exclusively inside classrooms."
+        delay={30}
+        animateBy="letters"
+        direction="top"
+        as="h2"
+        className="mt-8 max-w-4xl text-4xl font-medium md:text-5xl"
+      />
 
       <div className="mt-12 grid gap-10 border-t border-border pt-10 md:grid-cols-12">
         <Rise className="md:col-span-5">
@@ -62,7 +68,7 @@ export function ManifestoFooter() {
                   type="submit"
                   className="h-10 w-full rounded-none bg-accent px-5 font-mono text-[0.6rem] tracking-[0.18em] text-accent-foreground uppercase hover:bg-accent/85 sm:w-auto"
                 >
-                  [ Claim terminal seat ]
+                  [ Enter the network → ]
                 </Button>
               </Magnetic>
             </div>
@@ -72,10 +78,10 @@ export function ManifestoFooter() {
             >
               {claimed ? (
                 <span className="text-accent">
-                  SEAT RESERVED · {handle} · AWAITING FIRST COMMIT
+                  NODE CONNECTED · {handle} · WELCOME TO THE NETWORK
                 </span>
               ) : (
-                <span className="text-index">STATUS: IDLE · PREREQUISITE: NONE</span>
+                <span className="text-index">STATUS: IDLE · ACCESS: OPEN · PREREQUISITE: NONE</span>
               )}
             </p>
           </form>
@@ -83,11 +89,18 @@ export function ManifestoFooter() {
       </div>
 
       <div className="mt-16 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-6">
+        <div className="flex items-center gap-2.5">
+          <img
+            src="/logo.png"
+            alt="Chaos Computer Club"
+            className="h-5 w-5 object-contain opacity-75"
+          />
+          <span className="font-mono text-[0.55rem] tracking-[0.2em] text-index uppercase">
+            Chaos Computer Club — [001/EST.2026]
+          </span>
+        </div>
         <span className="font-mono text-[0.55rem] tracking-[0.2em] text-index uppercase">
-          Chaos Computer Club — [001/EST.2026]
-        </span>
-        <span className="font-mono text-[0.55rem] tracking-[0.2em] text-index uppercase">
-          Explore · Build · Compete · Repeat
+          Explore · Build · Compete · Fail · Learn · Share · Repeat
         </span>
       </div>
     </footer>

@@ -1,110 +1,150 @@
-import { useState } from "react";
-import { GlassSurface, type LiquidGlassEffect } from "@/components/Navigation/GlassSurface";
+import { useState, useEffect } from "react";
 
 const NAV_LINKS = [
+  { id: "#top", label: "00 / Top" },
+  { id: "#about", label: "00 / About" },
   { id: "#gap", label: "01 / The gap" },
   { id: "#forge", label: "02 / The forge" },
   { id: "#chaos", label: "03 / Chaos" },
+  { id: "#codebase", label: "04 / Codebase" },
   { id: "#values", label: "05 / Values" },
   { id: "#telemetry", label: "06 / Telemetry" },
   { id: "#manifesto", label: "07 / Resolution" },
 ];
 
 /**
- * Floating Apple iOS 26 Liquid Glass Navigation Bar
- * Features tactile press elasticity, dynamic liquid refraction, and droplet tab adhesion.
+ * Clean, full-width, prominent navbar:
+ * - Tall architectural height (h-20 on mobile, h-24 on desktop)
+ * - Prominent CCC metallic logo with 3-line stacked title:
+ *     CHAOS
+ *     COMPUTER
+ *     CLUB
+ * - Zero overflow: responsive breakpoints ensuring clean fit on all viewports
+ * - Zero border radius (strict rectangular architectural edges)
+ * - Backdrop blur with subtle translucent background
  */
 export function HeaderNav() {
-  const [activeTab, setActiveTab] = useState<string | null>(null);
-  const [glassEffect, setGlassEffect] = useState<LiquidGlassEffect>("regular");
+  const [activeTab, setActiveTab] = useState<string>("#top");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const toggleGlassEffect = () => {
-    setGlassEffect((prev) => (prev === "regular" ? "clear" : "regular"));
-  };
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollY = window.scrollY;
+      const sections = NAV_LINKS.map((link) => ({
+        id: link.id,
+        el: link.id === "#top" ? document.body : document.querySelector(link.id),
+      }));
+
+      for (let i = sections.length - 1; i >= 0; i--) {
+        const sec = sections[i];
+        if (sec && sec.el) {
+          const top = sec.el.getBoundingClientRect().top + window.scrollY;
+          if (scrollY >= top - 220) {
+            setActiveTab(sec.id);
+            break;
+          }
+        }
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   return (
-    <header className="fixed inset-x-0 top-0 z-50 flex justify-center px-3 pt-3 sm:px-6 pointer-events-none">
-      <div className="w-full max-w-7xl pointer-events-auto">
-        <GlassSurface
-          width="100%"
-          height="auto"
-          borderRadius={20}
-          borderWidth={0.25}
-          brightness={50}
-          opacity={0.93}
-          blur={11}
-          displace={glassEffect === "clear" ? 0.35 : 0.6}
-          backgroundOpacity={glassEffect === "clear" ? 0.03 : 0.08}
-          saturation={glassEffect === "clear" ? 1.6 : 1.45}
-          distortionScale={glassEffect === "clear" ? -210 : -180}
-          redOffset={glassEffect === "clear" ? -8 : -4}
-          greenOffset={glassEffect === "clear" ? 12 : 8}
-          blueOffset={glassEffect === "clear" ? 24 : 18}
-          mixBlendMode="difference"
-          interactive={true}
-          effect={glassEffect}
-          className="w-full"
+    <header className="fixed inset-x-0 top-0 z-50 w-full max-w-full rounded-none border-b border-border bg-background/85 backdrop-blur-md transition-colors">
+      <div className="flex h-20 md:h-24 w-full max-w-full items-center justify-between px-4 sm:px-6 md:px-8">
+        
+        {/* Left: Bold Brand Logo + 3-line stacked title */}
+        <a
+          href="#top"
+          aria-label="Chaos Computer Club Home"
+          className="group flex items-center gap-3 sm:gap-3.5 font-mono text-foreground transition-colors hover:text-accent select-none shrink-0"
         >
-          <div className="flex w-full items-center justify-between px-5 py-3 md:px-7">
-            {/* Logo on the left */}
-            <a
-              href="#top"
-              aria-label="Home"
-              className="group flex items-center gap-2.5 font-mono text-xs font-semibold tracking-[0.2em] text-foreground uppercase transition-all duration-200 hover:text-accent shrink-0 active:scale-95"
-            >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="text-foreground transition-transform duration-300 group-hover:rotate-12 group-hover:text-accent"
-              >
-                <polygon points="12 2 2 7 12 12 22 7 12 2" />
-                <polyline points="2 17 12 22 22 17" />
-                <polyline points="2 12 12 17 22 12" />
-              </svg>
-              <span>[ LOGO ]</span>
-            </a>
-
-            {/* Section Navigation Links with Liquid Droplet Hover Pill */}
-            <nav className="flex items-center gap-1.5 sm:gap-3 overflow-x-auto no-scrollbar">
-              {NAV_LINKS.map((link) => {
-                const isHovered = activeTab === link.id;
-                return (
-                  <a
-                    key={link.id}
-                    href={link.id}
-                    onMouseEnter={() => setActiveTab(link.id)}
-                    onMouseLeave={() => setActiveTab(null)}
-                    className={`relative px-2.5 py-1 rounded-full font-mono text-[0.58rem] tracking-[0.18em] whitespace-nowrap uppercase transition-all duration-200 ${
-                      isHovered
-                        ? "text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.4),0_2px_8px_rgba(0,0,0,0.3)] bg-white/[0.09] backdrop-blur-sm"
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    {link.label}
-                  </a>
-                );
-              })}
-
-              {/* Mode Toggle for iOS 26 Liquid Glass: regular (frosted) vs clear (crystal) */}
-              <button
-                type="button"
-                onClick={toggleGlassEffect}
-                title="Switch Apple Liquid Glass Mode: regular (frosted) or clear (crystal)"
-                className="ml-2 hidden sm:inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border border-white/20 bg-white/5 text-[0.52rem] font-mono tracking-widest text-muted-foreground hover:text-foreground hover:border-white/40 transition-colors uppercase"
-              >
-                <span className="h-1.5 w-1.5 rounded-full bg-accent animate-pulse" />
-                <span>{glassEffect}</span>
-              </button>
-            </nav>
+          <img
+            src="/logo.png"
+            alt="Chaos Computer Club Logo"
+            width={60}
+            height={60}
+            className="h-11 w-11 sm:h-14 sm:w-14 md:h-16 md:w-16 object-contain drop-shadow-[0_0_12px_rgba(255,255,255,0.18)]"
+          />
+          <div className="flex flex-col font-mono text-[0.6rem] sm:text-[0.68rem] md:text-[0.74rem] font-bold tracking-[0.2em] uppercase leading-[1.12] text-foreground group-hover:text-accent transition-colors">
+            <span>CHAOS</span>
+            <span>COMPUTER</span>
+            <span>CLUB</span>
           </div>
-        </GlassSurface>
+        </a>
+
+        {/* Center / Navigation Links: Clean simple text links on xl+ displays */}
+        <nav className="hidden xl:flex items-center gap-5 2xl:gap-8" aria-label="Main Navigation">
+          {NAV_LINKS.map((link) => {
+            const isActive = activeTab === link.id;
+            return (
+              <a
+                key={link.id}
+                href={link.id}
+                onClick={() => setActiveTab(link.id)}
+                className={`font-mono text-xs tracking-[0.14em] uppercase whitespace-nowrap transition-colors ${
+                  isActive
+                    ? "text-accent font-semibold"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {link.label}
+              </a>
+            );
+          })}
+        </nav>
+
+        {/* Right: Actions */}
+        <div className="flex items-center gap-3 sm:gap-4 shrink-0 font-mono text-xs">
+          <a
+            href="#manifesto"
+            className="rounded-none border border-border bg-surface/50 px-3.5 sm:px-4 py-2 font-mono text-xs tracking-[0.14em] text-foreground uppercase transition-colors hover:border-accent hover:text-accent"
+          >
+            [ Enter the network → ]
+          </a>
+
+          {/* Mobile/Tablet Menu Toggle Button */}
+          <button
+            type="button"
+            onClick={() => setMobileMenuOpen((prev) => !prev)}
+            className="flex xl:hidden rounded-none border border-border p-2 text-muted-foreground hover:text-foreground hover:border-foreground transition-colors"
+            aria-label="Toggle navigation menu"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              {mobileMenuOpen ? (
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              ) : (
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+              )}
+            </svg>
+          </button>
+        </div>
       </div>
+
+      {/* Mobile/Tablet Dropdown Menu: Clean zero-radius backdrop blur */}
+      {mobileMenuOpen && (
+        <div className="xl:hidden w-full rounded-none border-b border-border bg-background/95 backdrop-blur-xl px-5 py-4 flex flex-col gap-3">
+          {NAV_LINKS.map((link) => (
+            <a
+              key={link.id}
+              href={link.id}
+              onClick={() => {
+                setActiveTab(link.id);
+                setMobileMenuOpen(false);
+              }}
+              className={`rounded-none px-2 py-2 font-mono text-xs tracking-wider uppercase transition-colors ${
+                activeTab === link.id
+                  ? "text-accent font-semibold"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {link.label}
+            </a>
+          ))}
+        </div>
+      )}
     </header>
   );
 }

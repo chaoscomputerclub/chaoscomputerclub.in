@@ -3,7 +3,7 @@ import { LenisProvider } from "@/components/LenisProvider";
 import { CurtainPreloader } from "@/components/CurtainPreloader";
 import { NotesModeProvider } from "@/hooks/useNotesMode";
 import { NotesModeOverlay } from "@/components/Overlays/NotesModeOverlay";
-import { FluidGlassCursor } from "@/components/Cursor/FluidGlassCursor";
+import TargetCursor from "@/components/Cursor/TargetCursor";
 import { HeaderNav } from "@/components/Navigation/HeaderNav";
 import { HeroModular } from "@/components/Hero/HeroModular";
 import { BlockVerticalSpec } from "@/components/Blocks/BlockVerticalSpec";
@@ -13,10 +13,11 @@ import { BlockScreensSplit } from "@/components/Blocks/BlockScreensSplit";
 import { ValuesGrid } from "@/components/Values/ValuesGrid";
 import { ForgeLoop } from "@/components/Loop/ForgeLoop";
 import { ManifestoFooter } from "@/components/Footer/ManifestoFooter";
+import { AboutUs } from "@/components/About/AboutUs";
 
 const TITLE = "Chaos Computer Club — Practical engineering under pressure";
 const DESCRIPTION =
-  "A student community for practical learning, competition and building under real constraints. Come to learn something. Stay to build something.";
+  "A technology community built around practical experimentation, competition, open knowledge, and people who want to become better by doing difficult things.";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -37,11 +38,19 @@ function Index() {
     <NotesModeProvider>
       <LenisProvider>
         <CurtainPreloader />
-        <FluidGlassCursor accentColor="#ccff00" size={68} />
+        <TargetCursor
+          spinDuration={2}
+          hideDefaultCursor={true}
+          parallaxOn={true}
+          cursorColor="#ffffff"
+          cursorColorOnTarget="#CCFF00"
+          targetSelector=".cursor-target, a, button, input, [role='button'], [data-spec-box]"
+        />
         <NotesModeOverlay />
         <HeaderNav />
         <main className="min-h-screen bg-background">
           <HeroModular />
+          <AboutUs />
           <BlockVerticalSpec />
           <BlockHorizontalReel />
           <BlockRotatedSide />

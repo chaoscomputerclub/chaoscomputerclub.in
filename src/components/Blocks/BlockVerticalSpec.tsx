@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { MaskedLine } from "@/components/Motion/MaskedLine";
+import BlurText from "@/components/Motion/BlurText";
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 
@@ -32,10 +32,15 @@ export function BlockVerticalSpec() {
     <section id="gap" className="border-b border-border px-4 py-20 md:px-6 md:py-28">
       <div className="grid gap-10 md:grid-cols-12">
         <div className="md:col-span-4">
-          <span className="kicker">(The problem)</span>
-          <MaskedLine as="h2" className="mt-6 text-3xl font-medium md:text-4xl">
-            Theory vs Reality
-          </MaskedLine>
+          <span className="kicker">(01 // The gap)</span>
+          <BlurText
+            text="Theory vs Reality"
+            delay={50}
+            animateBy="letters"
+            direction="top"
+            as="h2"
+            className="mt-6 text-3xl font-medium md:text-4xl"
+          />
           <p className="mt-6 font-mono text-[0.6rem] tracking-[0.2em] text-index">
             INDEX 1.0 <span className="notes-only">· w: 335px · h: 426px</span>
           </p>
