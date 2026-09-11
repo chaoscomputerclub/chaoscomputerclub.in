@@ -85,7 +85,7 @@ export function HeroModular() {
           mouseRadius={0.3}
           mouseStrength={0.4}
         />
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-background/25 via-transparent to-background/80" />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-background/40 via-transparent to-background/80" />
       </div>
 
       {/* Hero content: Pure "CHAOS" geometric matrix centered full-screen */}
