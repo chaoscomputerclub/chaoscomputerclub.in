@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { GlassSurface } from "@/components/Navigation/GlassSurface";
+import { GlassSurface, type LiquidGlassEffect } from "@/components/Navigation/GlassSurface";
 
 const NAV_LINKS = [
   { id: "#gap", label: "01 / The gap" },
@@ -16,6 +16,11 @@ const NAV_LINKS = [
  */
 export function HeaderNav() {
   const [activeTab, setActiveTab] = useState<string | null>(null);
+  const [glassEffect, setGlassEffect] = useState<LiquidGlassEffect>("regular");
+
+  const toggleGlassEffect = () => {
+    setGlassEffect((prev) => (prev === "regular" ? "clear" : "regular"));
+  };
 
   return (
     <header className="fixed inset-x-0 top-0 z-50 flex justify-center px-3 pt-3 sm:px-6 pointer-events-none">
@@ -28,20 +33,20 @@ export function HeaderNav() {
           brightness={50}
           opacity={0.93}
           blur={11}
-          displace={0.55}
-          backgroundOpacity={0.08}
-          saturation={1.45}
-          distortionScale={-180}
-          redOffset={-4}
-          greenOffset={8}
-          blueOffset={18}
+          displace={glassEffect === "clear" ? 0.35 : 0.6}
+          backgroundOpacity={glassEffect === "clear" ? 0.03 : 0.08}
+          saturation={glassEffect === "clear" ? 1.6 : 1.45}
+          distortionScale={glassEffect === "clear" ? -210 : -180}
+          redOffset={glassEffect === "clear" ? -8 : -4}
+          greenOffset={glassEffect === "clear" ? 12 : 8}
+          blueOffset={glassEffect === "clear" ? 24 : 18}
           mixBlendMode="difference"
           interactive={true}
-          effect="regular"
+          effect={glassEffect}
           className="w-full"
         >
           <div className="flex w-full items-center justify-between px-5 py-3 md:px-7">
-            {/* Logo on the left (not centered) */}
+            {/* Logo on the left */}
             <a
               href="#top"
               aria-label="Home"
@@ -85,6 +90,17 @@ export function HeaderNav() {
                   </a>
                 );
               })}
+
+              {/* Mode Toggle for iOS 26 Liquid Glass: regular (frosted) vs clear (crystal) */}
+              <button
+                type="button"
+                onClick={toggleGlassEffect}
+                title="Switch Apple Liquid Glass Mode: regular (frosted) or clear (crystal)"
+                className="ml-2 hidden sm:inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border border-white/20 bg-white/5 text-[0.52rem] font-mono tracking-widest text-muted-foreground hover:text-foreground hover:border-white/40 transition-colors uppercase"
+              >
+                <span className="h-1.5 w-1.5 rounded-full bg-accent animate-pulse" />
+                <span>{glassEffect}</span>
+              </button>
             </nav>
           </div>
         </GlassSurface>

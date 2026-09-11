@@ -1,20 +1,32 @@
-import { useEffect, useRef, useState } from "react";
+/* eslint-disable react-hooks/exhaustive-deps */
+import { useEffect, useRef, useState, useId, useCallback } from "react";
 
 export interface FluidGlassCursorProps {
   accentColor?: string;
   size?: number;
   showCenterReticle?: boolean;
+  effect?: "clear" | "regular";
 }
 
+/**
+ * Apple iOS 26 Liquid Glass Cursor
+ * Dynamic refractive lens with chromatic dispersion, inertia deformation,
+ * and tactile spring compression.
+ */
 export function FluidGlassCursor({
   accentColor = "#ccff00",
-  size = 68,
+  size = 64,
   showCenterReticle = true,
+  effect = "clear",
 }: FluidGlassCursorProps) {
   const [mounted, setMounted] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [isClicking, setIsClicking] = useState(false);
+  const [svgSupported, setSvgSupported] = useState(false);
+
+  const uniqueId = useId().replace(/:/g, "-");
+  const filterId = `cursor-glass-filter-${uniqueId}`;
 
   const mousePos = useRef({ x: -200, y: -200 });
   const currentPos = useRef({ x: -200, y: -200 });
@@ -22,6 +34,34 @@ export function FluidGlassCursor({
 
   const cursorRef = useRef<HTMLDivElement>(null);
   const specRef = useRef<HTMLDivElement>(null);
+  const feImageRef = useRef<SVGFEImageElement | null>(null);
+  const redChannelRef = useRef<SVGFEDisplacementMapElement | null>(null);
+  const greenChannelRef = useRef<SVGFEDisplacementMapElement | null>(null);
+  const blueChannelRef = useRef<SVGFEDisplacementMapElement | null>(null);
+
+  // Generate spherical lens displacement map
+  const generateLensMap = useCallback(() => {
+    const s = 128;
+    const center = s / 2;
+    const r = center - 4;
+    const gradId = `lens-grad-${uniqueId}`;
+
+    const svg = `
+      <svg viewBox="0 0 ${s} ${s}" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="${gradId}" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#808080" />
+            <stop offset="40%" stop-color="#907090" />
+            <stop offset="75%" stop-color="#b050b0" />
+            <stop offset="100%" stop-color="#ff00ff" />
+          </radialGradient>
+        </defs>
+        <rect width="${s}" height="${s}" fill="#808080" />
+        <circle cx="${center}" cy="${center}" r="${r}" fill="url(#${gradId})" />
+      </svg>
+    `;
+    return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+  }, [uniqueId]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -30,6 +70,15 @@ export function FluidGlassCursor({
 
     setMounted(true);
 
+    // SVG filter support check
+    const isWebkit = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
+    const isFirefox = /Firefox/.test(navigator.userAgent);
+    if (!isWebkit && !isFirefox) {
+      const div = document.createElement("div");
+      div.style.backdropFilter = `url(#${filterId})`;
+      setSvgSupported(div.style.backdropFilter !== "");
+    }
+
     const onPointerMove = (e: PointerEvent) => {
       mousePos.current = { x: e.clientX, y: e.clientY };
       if (!isVisible) setIsVisible(true);
@@ -37,7 +86,7 @@ export function FluidGlassCursor({
       const target = e.target as HTMLElement | null;
       if (target) {
         const interactive = target.closest(
-          "a, button, [role='button'], input, textarea, select, [data-interactive]",
+          "a, button, [role='button'], input, textarea, select, [data-interactive]"
         );
         setIsHovered(!!interactive);
       }
@@ -57,7 +106,7 @@ export function FluidGlassCursor({
 
     let rafId: number;
     const renderLoop = () => {
-      const ease = 0.18;
+      const ease = 0.2;
       const dx = mousePos.current.x - currentPos.current.x;
       const dy = mousePos.current.y - currentPos.current.y;
 
@@ -67,15 +116,20 @@ export function FluidGlassCursor({
       currentPos.current.x += dx * ease;
       currentPos.current.y += dy * ease;
 
+      const speed = Math.hypot(dx, dy);
+      const angle = Math.atan2(dy, dx);
+      // Subtle organic liquid elongation along motion direction
+      const stretch = Math.min(0.24, speed * 0.004);
+
       if (cursorRef.current) {
-        cursorRef.current.style.transform = `translate3d(${currentPos.current.x}px, ${currentPos.current.y}px, 0)`;
+        cursorRef.current.style.transform = `translate3d(${currentPos.current.x}px, ${currentPos.current.y}px, 0) rotate(${angle}rad) scale(${1 + stretch}, ${1 - stretch * 0.5})`;
       }
 
-      // Specular highlight tilts with movement
+      // Specular highlight shifts counter to motion
       if (specRef.current) {
-        const tiltX = Math.max(-16, Math.min(16, dy * 0.3));
-        const tiltY = Math.max(-16, Math.min(16, -dx * 0.3));
-        specRef.current.style.transform = `translate3d(${tiltY * 0.5}px, ${tiltX * 0.5}px, 0)`;
+        const tiltX = Math.max(-10, Math.min(10, -dy * 0.25));
+        const tiltY = Math.max(-10, Math.min(10, -dx * 0.25));
+        specRef.current.style.transform = `translate3d(${tiltY}px, ${tiltX}px, 0)`;
       }
 
       rafId = requestAnimationFrame(renderLoop);
@@ -90,11 +144,18 @@ export function FluidGlassCursor({
       window.removeEventListener("pointerup", onPointerUp);
       document.removeEventListener("mouseleave", onPointerLeave);
     };
-  }, [isVisible]);
+  }, [isVisible, filterId]);
+
+  useEffect(() => {
+    if (feImageRef.current) {
+      feImageRef.current.setAttribute("href", generateLensMap());
+    }
+  }, [generateLensMap]);
 
   if (!mounted || !isVisible) return null;
 
-  const currentSize = isClicking ? size * 0.88 : isHovered ? size * 1.3 : size;
+  const currentSize = isClicking ? size * 0.86 : isHovered ? size * 1.32 : size;
+  const isClear = effect === "clear";
 
   return (
     <div
@@ -105,36 +166,99 @@ export function FluidGlassCursor({
         width: `${currentSize}px`,
         height: `${currentSize}px`,
         transition:
-          "width 220ms cubic-bezier(0.16,1,0.3,1), height 220ms cubic-bezier(0.16,1,0.3,1)",
+          "width 200ms cubic-bezier(0.34,1.56,0.64,1), height 200ms cubic-bezier(0.34,1.56,0.64,1)",
       }}
     >
-      {/* ── Pure Liquid Glass Orb ── */}
+      {/* ── SVG Refraction Filter for Liquid Glass Cursor ── */}
+      <svg
+        className="pointer-events-none absolute inset-0 -z-10 opacity-0"
+        width="0"
+        height="0"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <defs>
+          <filter id={filterId} colorInterpolationFilters="sRGB" x="-20%" y="-20%" width="140%" height="140%">
+            <feImage ref={feImageRef} preserveAspectRatio="none" result="map" />
+            <feDisplacementMap
+              ref={redChannelRef}
+              in="SourceGraphic"
+              in2="map"
+              scale={isHovered ? "-38" : "-28"}
+              xChannelSelector="R"
+              yChannelSelector="B"
+              result="dispRed"
+            />
+            <feColorMatrix
+              in="dispRed"
+              type="matrix"
+              values="1 0 0 0 0
+                      0 0 0 0 0
+                      0 0 0 0 0
+                      0 0 0 1 0"
+              result="red"
+            />
+            <feDisplacementMap
+              ref={greenChannelRef}
+              in="SourceGraphic"
+              in2="map"
+              scale={isHovered ? "-32" : "-22"}
+              xChannelSelector="R"
+              yChannelSelector="B"
+              result="dispGreen"
+            />
+            <feColorMatrix
+              in="dispGreen"
+              type="matrix"
+              values="0 0 0 0 0
+                      0 1 0 0 0
+                      0 0 0 0 0
+                      0 0 0 1 0"
+              result="green"
+            />
+            <feDisplacementMap
+              ref={blueChannelRef}
+              in="SourceGraphic"
+              in2="map"
+              scale={isHovered ? "-26" : "-16"}
+              xChannelSelector="R"
+              yChannelSelector="B"
+              result="dispBlue"
+            />
+            <feColorMatrix
+              in="dispBlue"
+              type="matrix"
+              values="0 0 0 0 0
+                      0 0 0 0 0
+                      0 0 1 0 0
+                      0 0 0 1 0"
+              result="blue"
+            />
+            <feBlend in="red" in2="green" mode="screen" result="rg" />
+            <feBlend in="rg" in2="blue" mode="screen" result="output" />
+            <feGaussianBlur in="output" stdDeviation={isClear ? 0.3 : 0.6} />
+          </filter>
+        </defs>
+      </svg>
+
+      {/* ── Liquid Glass Droplet Orb ── */}
       <div
-        className="relative h-full w-full rounded-full"
+        className="relative h-full w-full rounded-full transition-all duration-200"
         style={{
-          background: "rgba(255, 255, 255, 0.05)",
-          backdropFilter: isHovered
-            ? "blur(14px) saturate(2.2) brightness(1.28) contrast(1.05)"
-            : "blur(10px) saturate(1.8) brightness(1.22) contrast(1.04)",
-          WebkitBackdropFilter: isHovered
-            ? "blur(14px) saturate(2.2) brightness(1.28) contrast(1.05)"
-            : "blur(10px) saturate(1.8) brightness(1.22) contrast(1.04)",
+          background: isClear
+            ? "rgba(255, 255, 255, 0.04)"
+            : "rgba(255, 255, 255, 0.09)",
+          backdropFilter: svgSupported
+            ? `url(#${filterId}) saturate(${isHovered ? 2.0 : 1.5}) brightness(1.15)`
+            : `blur(${isHovered ? 14 : 10}px) saturate(2.0) brightness(1.2)`,
+          WebkitBackdropFilter: svgSupported
+            ? `url(#${filterId}) saturate(${isHovered ? 2.0 : 1.5}) brightness(1.15)`
+            : `blur(${isHovered ? 14 : 10}px) saturate(2.0) brightness(1.2)`,
           boxShadow: isHovered
-            ? [
-                "0 8px 30px rgba(0,0,0,0.45)",
-                "0 0 15px rgba(255,255,255,0.2)",
-                "inset 0 1.5px 0 rgba(255,255,255,0.9)",
-                "inset 0 -1.5px 0 rgba(255,255,255,0.3)",
-              ].join(", ")
-            : [
-                "0 4px 18px rgba(0,0,0,0.35)",
-                "0 0 10px rgba(255,255,255,0.15)",
-                "inset 0 1.2px 0 rgba(255,255,255,0.8)",
-                "inset 0 -1px 0 rgba(255,255,255,0.2)",
-              ].join(", "),
+            ? "0 10px 32px rgba(0,0,0,0.5), inset 0 2px 1px rgba(255,255,255,0.95), inset 0 -1.5px 0 rgba(255,255,255,0.3), inset 0 0 16px rgba(255,255,255,0.12)"
+            : "0 6px 20px rgba(0,0,0,0.4), inset 0 1.5px 0.5px rgba(255,255,255,0.85), inset 0 -1px 0 rgba(255,255,255,0.2), inset 0 0 12px rgba(255,255,255,0.08)",
           border: isHovered
-            ? "1px solid rgba(255,255,255,0.45)"
-            : "1px solid rgba(255,255,255,0.3)",
+            ? "1.2px solid rgba(255,255,255,0.48)"
+            : "1px solid rgba(255,255,255,0.32)",
         }}
       >
         {/* ── Top Specular Light Shelf ── */}
@@ -142,34 +266,34 @@ export function FluidGlassCursor({
           className="pointer-events-none absolute inset-0 rounded-full"
           style={{
             background:
-              "linear-gradient(180deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.15) 20%, transparent 55%)",
+              "linear-gradient(180deg, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0.12) 22%, transparent 55%)",
             zIndex: 3,
           }}
         />
 
-        {/* ── Meniscus Highlight ── */}
+        {/* ── Meniscus Glint ── */}
         <div
           ref={specRef}
           className="pointer-events-none absolute rounded-full transition-transform duration-75 ease-out"
           style={{
-            inset: "8%",
+            inset: "10%",
             background:
-              "radial-gradient(circle at 35% 28%, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.1) 32%, transparent 65%)",
+              "radial-gradient(circle at 35% 30%, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0.12) 32%, transparent 68%)",
             zIndex: 2,
           }}
         />
 
-        {/* ── Bottom Catch Light ── */}
+        {/* ── Bottom Prismatic Catch Light ── */}
         <div
           className="pointer-events-none absolute inset-0 rounded-full"
           style={{
             background:
-              "linear-gradient(180deg, transparent 60%, rgba(255,255,255,0.12) 100%)",
+              "linear-gradient(180deg, transparent 65%, rgba(255,255,255,0.18) 100%)",
             zIndex: 1,
           }}
         />
 
-        {/* ── Telemetry Reticle ── */}
+        {/* ── Center Reticle ── */}
         {showCenterReticle && (
           <div
             className="absolute inset-0 grid place-items-center pointer-events-none"
@@ -178,17 +302,17 @@ export function FluidGlassCursor({
             <div
               className="absolute h-[1px] w-3 transition-all duration-150"
               style={{
-                backgroundColor: isHovered ? accentColor : "rgba(255,255,255,0.5)",
+                backgroundColor: isHovered ? accentColor : "rgba(255,255,255,0.55)",
                 opacity: isHovered ? 0.95 : 0.45,
-                boxShadow: isHovered ? `0 0 4px ${accentColor}` : "none",
+                boxShadow: isHovered ? `0 0 6px ${accentColor}` : "none",
               }}
             />
             <div
               className="absolute w-[1px] h-3 transition-all duration-150"
               style={{
-                backgroundColor: isHovered ? accentColor : "rgba(255,255,255,0.5)",
+                backgroundColor: isHovered ? accentColor : "rgba(255,255,255,0.55)",
                 opacity: isHovered ? 0.95 : 0.45,
-                boxShadow: isHovered ? `0 0 4px ${accentColor}` : "none",
+                boxShadow: isHovered ? `0 0 6px ${accentColor}` : "none",
               }}
             />
             <div
@@ -196,7 +320,7 @@ export function FluidGlassCursor({
               style={{
                 backgroundColor: accentColor,
                 transform: isClicking ? "scale(0.65)" : isHovered ? "scale(1.4)" : "scale(1)",
-                boxShadow: `0 0 8px ${accentColor}, 0 0 2px rgba(255,255,255,0.6)`,
+                boxShadow: `0 0 8px ${accentColor}, 0 0 2px rgba(255,255,255,0.8)`,
               }}
             />
           </div>
