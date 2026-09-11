@@ -1,5 +1,5 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import { useEffect, useState, useRef, useId, type MouseEvent } from "react";
+import { useEffect, useState, useRef, useId } from "react";
 import "./GlassSurface.css";
 
 export interface GlassSurfaceProps {
@@ -27,20 +27,20 @@ export interface GlassSurfaceProps {
 
 export function GlassSurface({
   children,
-  width = "100%",
-  height = "auto",
-  borderRadius = 16,
-  borderWidth = 0.08,
+  width = 200,
+  height = 80,
+  borderRadius = 50,
+  borderWidth = 0.07,
   brightness = 50,
-  opacity = 0.92,
-  blur = 10,
+  opacity = 0.93,
+  blur = 11,
   displace = 0.5,
   backgroundOpacity = 0.1,
-  saturation = 1.4,
-  distortionScale = -160,
+  saturation = 1.2,
+  distortionScale = -180,
   redOffset = 0,
-  greenOffset = 12,
-  blueOffset = 24,
+  greenOffset = 10,
+  blueOffset = 20,
   xChannel = "R",
   yChannel = "G",
   mixBlendMode = "difference",
@@ -51,7 +51,6 @@ export function GlassSurface({
   const filterId = `glass-filter-${uniqueId}`;
   const redGradId = `red-grad-${uniqueId}`;
   const blueGradId = `blue-grad-${uniqueId}`;
-  const innerBlurId = `inner-blur-${uniqueId}`;
 
   const [svgSupported, setSvgSupported] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -63,31 +62,26 @@ export function GlassSurface({
 
   const generateDisplacementMap = () => {
     const rect = containerRef.current?.getBoundingClientRect();
-    const actualWidth = Math.max(20, Math.floor(rect?.width || 400));
-    const actualHeight = Math.max(20, Math.floor(rect?.height || 60));
-    const edgeSize = Math.max(1, Math.min(actualWidth, actualHeight) * (borderWidth * 0.5));
-    const midGray = Math.round((brightness / 100) * 255);
+    const actualWidth = Math.max(10, Math.floor(rect?.width || 400));
+    const actualHeight = Math.max(10, Math.floor(rect?.height || 200));
+    const edgeSize = Math.min(actualWidth, actualHeight) * (borderWidth * 0.5);
 
-    // Strictly standard SVG 1.1 with valid hex colors, opacities, and filter elements
     const svgContent = `
       <svg viewBox="0 0 ${actualWidth} ${actualHeight}" xmlns="http://www.w3.org/2000/svg">
         <defs>
-          <filter id="${innerBlurId}">
-            <feGaussianBlur stdDeviation="${blur}" />
-          </filter>
           <linearGradient id="${redGradId}" x1="100%" y1="0%" x2="0%" y2="0%">
-            <stop offset="0%" stop-color="#000000" stop-opacity="0"/>
-            <stop offset="100%" stop-color="#ff0000" stop-opacity="1"/>
+            <stop offset="0%" stop-color="#0000"/>
+            <stop offset="100%" stop-color="red"/>
           </linearGradient>
           <linearGradient id="${blueGradId}" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stop-color="#000000" stop-opacity="0"/>
-            <stop offset="100%" stop-color="#0000ff" stop-opacity="1"/>
+            <stop offset="0%" stop-color="#0000"/>
+            <stop offset="100%" stop-color="blue"/>
           </linearGradient>
         </defs>
-        <rect x="0" y="0" width="${actualWidth}" height="${actualHeight}" fill="#000000" />
+        <rect x="0" y="0" width="${actualWidth}" height="${actualHeight}" fill="black"></rect>
         <rect x="0" y="0" width="${actualWidth}" height="${actualHeight}" rx="${borderRadius}" fill="url(#${redGradId})" />
         <rect x="0" y="0" width="${actualWidth}" height="${actualHeight}" rx="${borderRadius}" fill="url(#${blueGradId})" style="mix-blend-mode: ${mixBlendMode}" />
-        <rect x="${edgeSize}" y="${edgeSize}" width="${Math.max(1, actualWidth - edgeSize * 2)}" height="${Math.max(1, actualHeight - edgeSize * 2)}" rx="${borderRadius}" fill="rgb(${midGray},${midGray},${midGray})" fill-opacity="${opacity}" filter="url(#${innerBlurId})" />
+        <rect x="${edgeSize}" y="${edgeSize}" width="${actualWidth - edgeSize * 2}" height="${actualHeight - edgeSize * 2}" rx="${borderRadius}" fill="hsl(0 0% ${brightness}% / ${opacity})" style="filter:blur(${blur}px)" />
       </svg>
     `;
 
@@ -95,11 +89,7 @@ export function GlassSurface({
   };
 
   const updateDisplacementMap = () => {
-    const dataUri = generateDisplacementMap();
-    if (feImageRef.current) {
-      feImageRef.current.setAttribute("href", dataUri);
-      feImageRef.current.setAttributeNS("http://www.w3.org/1999/xlink", "xlink:href", dataUri);
-    }
+    feImageRef.current?.setAttribute("href", generateDisplacementMap());
   };
 
   useEffect(() => {
@@ -174,38 +164,6 @@ export function GlassSurface({
     return div.style.backdropFilter !== "";
   };
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    const handleGlobalPointerMove = (e: PointerEvent) => {
-      if (!containerRef.current) return;
-      const rect = containerRef.current.getBoundingClientRect();
-      const x = ((e.clientX - rect.left) / rect.width) * 100;
-      const y = ((e.clientY - rect.top) / rect.height) * 100;
-
-      const centerX = rect.left + rect.width / 2;
-      const centerY = rect.top + rect.height / 2;
-      const rad = Math.atan2(e.clientY - centerY, e.clientX - centerX);
-      const angle = (rad * 180) / Math.PI + 90;
-
-      containerRef.current.style.setProperty("--mouse-x", `${x.toFixed(2)}%`);
-      containerRef.current.style.setProperty("--mouse-y", `${y.toFixed(2)}%`);
-      containerRef.current.style.setProperty("--rainbow-angle", `${angle.toFixed(1)}deg`);
-    };
-
-    window.addEventListener("pointermove", handleGlobalPointerMove, { passive: true });
-    return () => window.removeEventListener("pointermove", handleGlobalPointerMove);
-  }, []);
-
-  const handleMouseMove = (e: MouseEvent<HTMLDivElement>) => {
-    const rect = containerRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    const x = ((e.clientX - rect.left) / rect.width) * 100;
-    const y = ((e.clientY - rect.top) / rect.height) * 100;
-    containerRef.current?.style.setProperty("--mouse-x", `${x.toFixed(2)}%`);
-    containerRef.current?.style.setProperty("--mouse-y", `${y.toFixed(2)}%`);
-  };
-
   const containerStyle: React.CSSProperties & Record<string, unknown> = {
     ...style,
     width: typeof width === "number" ? `${width}px` : width,
@@ -219,7 +177,6 @@ export function GlassSurface({
   return (
     <div
       ref={containerRef}
-      onMouseMove={handleMouseMove}
       className={`glass-surface ${svgSupported ? "glass-surface--svg" : "glass-surface--fallback"} ${className}`}
       style={containerStyle}
     >
@@ -228,10 +185,10 @@ export function GlassSurface({
           <filter
             id={filterId}
             colorInterpolationFilters="sRGB"
-            x="-20%"
-            y="-20%"
-            width="140%"
-            height="140%"
+            x="0%"
+            y="0%"
+            width="100%"
+            height="100%"
           >
             <feImage
               ref={feImageRef}
@@ -252,7 +209,10 @@ export function GlassSurface({
             <feColorMatrix
               in="dispRed"
               type="matrix"
-              values="1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0"
+              values={`1 0 0 0 0
+                      0 0 0 0 0
+                      0 0 0 0 0
+                      0 0 0 1 0`}
               result="red"
             />
             <feDisplacementMap
@@ -265,7 +225,10 @@ export function GlassSurface({
             <feColorMatrix
               in="dispGreen"
               type="matrix"
-              values="0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 1 0"
+              values={`0 0 0 0 0
+                      0 1 0 0 0
+                      0 0 0 0 0
+                      0 0 0 1 0`}
               result="green"
             />
             <feDisplacementMap
@@ -278,7 +241,10 @@ export function GlassSurface({
             <feColorMatrix
               in="dispBlue"
               type="matrix"
-              values="0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 1 0"
+              values={`0 0 0 0 0
+                      0 0 0 0 0
+                      0 0 1 0 0
+                      0 0 0 1 0`}
               result="blue"
             />
             <feBlend in="red" in2="green" mode="screen" result="rg" />
@@ -287,12 +253,6 @@ export function GlassSurface({
           </filter>
         </defs>
       </svg>
-      {/* Prismatic Rainbow Refractive Rim following border-radius */}
-      <div className="glass-surface__rainbow-rim" aria-hidden />
-      {/* Prismatic edge caustics */}
-      <div className="glass-surface__prism-edge" aria-hidden />
-      {/* Interactive rainbow caustic light sheen that catches illumination */}
-      <div className="glass-surface__sheen" aria-hidden />
       <div className="glass-surface__content">{children}</div>
     </div>
   );
