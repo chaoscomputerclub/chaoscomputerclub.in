@@ -192,7 +192,7 @@ export function HeaderNav() {
             })}
           </nav>
 
-          {/* Right: Enter the network action — visible on desktop (xl+) */}
+          {/* Right: Join us action — visible on desktop (xl+) */}
           <div className="hidden xl:flex items-center shrink-0">
             <a
               href="#manifesto"
@@ -203,7 +203,7 @@ export function HeaderNav() {
               }}
               className="inline-flex h-10 items-center justify-center rounded-none bg-accent px-5 font-mono text-[0.6rem] tracking-[0.18em] text-accent-foreground uppercase font-semibold transition-colors hover:bg-accent/85 cursor-pointer select-none"
             >
-              [ Enter the network → ]
+              [ Join us → ]
             </a>
           </div>
         </div>
@@ -236,7 +236,7 @@ export function HeaderNav() {
               }}
               className="flex h-11 w-full items-center justify-center rounded-none bg-accent px-5 font-mono text-[0.68rem] tracking-[0.18em] text-accent-foreground uppercase font-semibold transition-colors hover:bg-accent/85 cursor-pointer select-none"
             >
-              [ Enter the network → ]
+              [ Join us → ]
             </a>
           )}
         />

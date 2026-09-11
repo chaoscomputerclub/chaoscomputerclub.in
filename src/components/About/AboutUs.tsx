@@ -196,7 +196,7 @@ export function AboutUs() {
             animate={isInView ? { opacity: 1 } : {}}
             transition={{ duration: 0.6, ease: EASE, delay: 0.7 }}
           >
-            <span>Enter the network</span>
+            <span>Join us</span>
             <span aria-hidden>→</span>
           </motion.a>
         </div>

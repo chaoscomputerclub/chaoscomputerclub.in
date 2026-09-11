@@ -75,7 +75,7 @@ export function ManifestoFooter() {
                   type="submit"
                   className="h-10 w-full rounded-none bg-accent px-5 font-mono text-[0.6rem] tracking-[0.18em] text-accent-foreground uppercase hover:bg-accent/85 sm:w-auto"
                 >
-                  [ Enter the network → ]
+                  [ Join us → ]
                 </Button>
               </Magnetic>
             </div>
