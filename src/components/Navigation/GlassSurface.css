@@ -1,10 +1,16 @@
+/* Apple iOS 26 Liquid Glass Visual Material */
 .glass-surface {
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  transition: opacity 0.26s ease-out, box-shadow 0.3s ease-out, border-color 0.3s ease-out;
+  transition:
+    opacity 0.26s ease-out,
+    transform 0.24s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.3s ease-out,
+    border-color 0.3s ease-out;
+  will-change: transform, box-shadow;
 }
 
 .glass-surface__filter {
@@ -29,18 +35,58 @@
   z-index: 3;
 }
 
+/* ── Tint Layer (Apple iOS 26 tintColor) ── */
+.glass-surface__tint {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.22;
+  mix-blend-mode: soft-light;
+  transition: opacity 0.3s ease;
+}
+
+/* ── Base Glass Surface (SVG & Fallback) ── */
 .glass-surface--svg,
 .glass-surface--fallback {
-  background: rgba(255, 255, 255, var(--glass-frost, 0.06));
-  backdrop-filter: var(--filter-id, url(#glass-filter)) blur(20px) saturate(var(--glass-saturation, 1.4)) brightness(1.12);
-  -webkit-backdrop-filter: var(--filter-id, url(#glass-filter)) blur(20px) saturate(var(--glass-saturation, 1.4)) brightness(1.12);
-  box-shadow:
-    0 8px 32px 0 rgba(0, 0, 0, 0.45),
-    0 2px 8px 0 rgba(0, 0, 0, 0.25),
-    inset 0 1.5px 0 rgba(255, 255, 255, 0.75),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.15),
-    inset 0 0 14px rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.22);
+}
+
+/* ── Mode 1: Regular (Apple VisionOS / iOS 26 Frosted Glass) ── */
+.glass-surface--effect-regular {
+  background: rgba(255, 255, 255, var(--glass-frost, 0.08));
+  backdrop-filter: var(--filter-id, url(#glass-filter)) blur(22px) saturate(var(--glass-saturation, 1.4)) brightness(1.12);
+  -webkit-backdrop-filter: var(--filter-id, url(#glass-filter)) blur(22px) saturate(var(--glass-saturation, 1.4)) brightness(1.12);
+  box-shadow:
+    0 10px 36px 0 rgba(0, 0, 0, 0.46),
+    0 2px 10px 0 rgba(0, 0, 0, 0.25),
+    inset 0 1.5px 0.5px rgba(255, 255, 255, 0.78),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.15),
+    inset 0 0 16px rgba(255, 255, 255, 0.05);
+}
+
+/* ── Mode 2: Clear (Apple Crystal Liquid Glass) ── */
+.glass-surface--effect-clear {
+  background: rgba(255, 255, 255, var(--glass-frost, 0.03));
+  backdrop-filter: var(--filter-id, url(#glass-filter)) blur(8px) saturate(var(--glass-saturation, 1.6)) brightness(1.18);
+  -webkit-backdrop-filter: var(--filter-id, url(#glass-filter)) blur(8px) saturate(var(--glass-saturation, 1.6)) brightness(1.18);
+  border-color: rgba(255, 255, 255, 0.32);
+  box-shadow:
+    0 12px 42px 0 rgba(0, 0, 0, 0.5),
+    0 4px 14px 0 rgba(0, 0, 0, 0.28),
+    inset 0 1.8px 0.5px rgba(255, 255, 255, 0.92),
+    inset 0 -1.2px 0 rgba(255, 255, 255, 0.25),
+    inset 0 0 24px rgba(255, 255, 255, 0.08);
+}
+
+/* ── Mode 3: None (Transparent Pass-Through) ── */
+.glass-surface--effect-none {
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border-color: transparent;
+  box-shadow: none;
 }
 
 /* ── Top Specular Light Shelf (Glass Rim Glare) ── */
@@ -53,9 +99,18 @@
   z-index: 2;
   background: linear-gradient(
     180deg,
-    rgba(255, 255, 255, 0.24) 0%,
-    rgba(255, 255, 255, 0.06) 32%,
+    rgba(255, 255, 255, 0.26) 0%,
+    rgba(255, 255, 255, 0.06) 30%,
     transparent 65%
+  );
+}
+
+.glass-surface--effect-clear::before {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.35) 0%,
+    rgba(255, 255, 255, 0.08) 32%,
+    transparent 70%
   );
 }
 
@@ -69,7 +124,7 @@
   z-index: 2;
   background: radial-gradient(
     circle 180px at var(--mouse-x, 50%) var(--mouse-y, 50%),
-    rgba(255, 255, 255, calc(var(--mouse-intensity, 0) * 0.35)),
+    rgba(255, 255, 255, calc(var(--mouse-intensity, 0) * 0.38)),
     rgba(255, 255, 255, calc(var(--mouse-intensity, 0) * 0.1)) 45%,
     transparent 72%
   );
@@ -77,19 +132,36 @@
   opacity: var(--mouse-intensity, 0);
 }
 
+/* ── Hover Enhancement ── */
 .glass-surface--interactive:hover {
-  border-color: rgba(255, 255, 255, 0.32);
+  border-color: rgba(255, 255, 255, 0.36);
   box-shadow:
-    0 12px 40px 0 rgba(0, 0, 0, 0.52),
-    0 4px 14px 0 rgba(0, 0, 0, 0.3),
-    inset 0 1.5px 0.5px rgba(255, 255, 255, 0.85),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.2),
-    inset 0 0 22px rgba(255, 255, 255, 0.08);
+    0 14px 44px 0 rgba(0, 0, 0, 0.55),
+    0 4px 16px 0 rgba(0, 0, 0, 0.32),
+    inset 0 1.6px 0.5px rgba(255, 255, 255, 0.88),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.22),
+    inset 0 0 24px rgba(255, 255, 255, 0.09);
+}
+
+/* ── Tactile Press Physics (Apple iOS 26 Springs) ── */
+.glass-surface--pressed {
+  transform: scale(0.985);
+  transition: transform 0.14s cubic-bezier(0.2, 0.8, 0.2, 1);
+  box-shadow:
+    0 4px 18px 0 rgba(0, 0, 0, 0.6),
+    0 1px 4px 0 rgba(0, 0, 0, 0.4),
+    inset 0 2px 1px rgba(255, 255, 255, 0.95),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.3),
+    inset 0 0 28px rgba(255, 255, 255, 0.14);
+}
+
+.glass-surface--pressed .glass-surface__tint {
+  opacity: 0.35;
 }
 
 @supports not (backdrop-filter: blur(10px)) {
   .glass-surface--fallback {
-    background: rgba(0, 0, 0, 0.4);
+    background: rgba(16, 16, 20, 0.6);
     box-shadow:
       inset 0 1px 0 0 rgba(255, 255, 255, 0.5),
       inset 0 -1px 0 0 rgba(255, 255, 255, 0.3);

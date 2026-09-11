@@ -2,6 +2,8 @@
 import { useEffect, useState, useRef, useId, useCallback } from "react";
 import "./GlassSurface.css";
 
+export type LiquidGlassEffect = "regular" | "clear" | "none";
+
 export interface GlassSurfaceProps {
   children?: React.ReactNode;
   width?: number | string;
@@ -22,8 +24,12 @@ export interface GlassSurfaceProps {
   yChannel?: "R" | "G" | "B" | "A";
   mixBlendMode?: "difference" | "screen" | "multiply" | "overlay" | "color-dodge";
   interactive?: boolean;
+  effect?: LiquidGlassEffect;
+  tintColor?: string;
+  animated?: boolean;
   className?: string;
   style?: React.CSSProperties;
+  onPress?: () => void;
 }
 
 export function GlassSurface({
@@ -36,19 +42,35 @@ export function GlassSurface({
   opacity = 0.93,
   blur = 11,
   displace = 0.5,
-  backgroundOpacity = 0.08,
-  saturation = 1.4,
-  distortionScale = -180,
-  redOffset = 0,
-  greenOffset = 10,
-  blueOffset = 20,
+  backgroundOpacity,
+  saturation,
+  distortionScale,
+  redOffset,
+  greenOffset,
+  blueOffset,
   xChannel = "R",
   yChannel = "G",
   mixBlendMode = "difference",
   interactive = true,
+  effect = "regular",
+  tintColor,
+  animated = true,
   className = "",
   style = {},
+  onPress,
 }: GlassSurfaceProps) {
+  // Preset calibration based on Apple iOS 26 UIGlassEffect (clear vs regular)
+  const isClear = effect === "clear";
+  const isNone = effect === "none";
+
+  const effectiveBgOpacity = backgroundOpacity ?? (isClear ? 0.03 : 0.08);
+  const effectiveSaturation = saturation ?? (isClear ? 1.6 : 1.4);
+  const effectiveDistortionScale = distortionScale ?? (isClear ? -210 : -180);
+  const effectiveRedOffset = redOffset ?? (isClear ? -8 : -4);
+  const effectiveGreenOffset = greenOffset ?? (isClear ? 12 : 8);
+  const effectiveBlueOffset = blueOffset ?? (isClear ? 24 : 18);
+  const effectiveDisplace = displace ?? (isClear ? 0.35 : 0.55);
+
   const uniqueId = useId().replace(/:/g, "-");
   const filterId = `glass-filter-${uniqueId}`;
   const redGradId = `red-grad-${uniqueId}`;
@@ -56,6 +78,8 @@ export function GlassSurface({
   const pointerGradId = `pointer-grad-${uniqueId}`;
 
   const [svgSupported, setSvgSupported] = useState(false);
+  const [isPressed, setIsPressed] = useState(false);
+
   const containerRef = useRef<HTMLDivElement | null>(null);
   const feImageRef = useRef<SVGFEImageElement | null>(null);
   const redChannelRef = useRef<SVGFEDisplacementMapElement | null>(null);
@@ -73,6 +97,7 @@ export function GlassSurface({
     currentActive: 0,
     rafId: 0,
     isAnimating: false,
+    isDown: false,
   });
 
   const generateDisplacementMap = useCallback(
@@ -81,7 +106,7 @@ export function GlassSurface({
       const actualWidth = Math.max(10, Math.floor(rect?.width || 400));
       const actualHeight = Math.max(10, Math.floor(rect?.height || 80));
 
-      // Optical curvature: ensure the gradient spans nicely across the navbar height
+      // Optical curvature: ensure the gradient spans nicely across the glass height
       const edgeFactor = Math.max(0.2, borderWidth);
       const edgeSize = Math.max(8, Math.min(actualWidth * 0.12, actualHeight * edgeFactor * 0.5));
 
@@ -89,9 +114,9 @@ export function GlassSurface({
       const pointerRipple =
         activeFactor > 0.01
           ? `
-          <radialGradient id="${pointerGradId}" cx="${posX.toFixed(1)}%" cy="${posY.toFixed(1)}%" r="35%" fx="${posX.toFixed(1)}%" fy="${posY.toFixed(1)}%">
-            <stop offset="0%" stop-color="#ff3366" stop-opacity="${(activeFactor * 0.85).toFixed(2)}" />
-            <stop offset="35%" stop-color="#33ddff" stop-opacity="${(activeFactor * 0.6).toFixed(2)}" />
+          <radialGradient id="${pointerGradId}" cx="${posX.toFixed(1)}%" cy="${posY.toFixed(1)}%" r="${isClear ? "40%" : "34%"}" fx="${posX.toFixed(1)}%" fy="${posY.toFixed(1)}%">
+            <stop offset="0%" stop-color="#ff3366" stop-opacity="${(activeFactor * (isClear ? 0.95 : 0.85)).toFixed(2)}" />
+            <stop offset="35%" stop-color="#33ddff" stop-opacity="${(activeFactor * (isClear ? 0.7 : 0.6)).toFixed(2)}" />
             <stop offset="70%" stop-color="#808080" stop-opacity="${(activeFactor * 0.25).toFixed(2)}" />
             <stop offset="100%" stop-color="#808080" stop-opacity="0" />
           </radialGradient>
@@ -121,15 +146,15 @@ export function GlassSurface({
 
       return `data:image/svg+xml,${encodeURIComponent(svgContent)}`;
     },
-    [borderRadius, borderWidth, brightness, opacity, blur, mixBlendMode, redGradId, blueGradId, pointerGradId]
+    [borderRadius, borderWidth, brightness, opacity, blur, mixBlendMode, isClear, redGradId, blueGradId, pointerGradId]
   );
 
   const updateDisplacementMap = useCallback(
     (posX = 50, posY = 50, activeFactor = 0) => {
-      if (!feImageRef.current) return;
+      if (!feImageRef.current || isNone) return;
       feImageRef.current.setAttribute("href", generateDisplacementMap(posX, posY, activeFactor));
     },
-    [generateDisplacementMap]
+    [generateDisplacementMap, isNone]
   );
 
   // Smooth animation frame loop for pointer interaction
@@ -151,17 +176,17 @@ export function GlassSurface({
     }
 
     // Chromatic dispersion flair on active liquid hover
-    const chromaticBoost = p.currentActive * 12;
+    const chromaticBoost = p.currentActive * (isClear ? 16 : 10);
     if (redChannelRef.current) {
       redChannelRef.current.setAttribute(
         "scale",
-        (distortionScale + redOffset - chromaticBoost * 0.5).toFixed(1)
+        (effectiveDistortionScale + effectiveRedOffset - chromaticBoost * 0.5).toFixed(1)
       );
     }
     if (blueChannelRef.current) {
       blueChannelRef.current.setAttribute(
         "scale",
-        (distortionScale + blueOffset + chromaticBoost).toFixed(1)
+        (effectiveDistortionScale + effectiveBlueOffset + chromaticBoost).toFixed(1)
       );
     }
 
@@ -179,17 +204,18 @@ export function GlassSurface({
     } else {
       p.isAnimating = false;
     }
-  }, [distortionScale, redOffset, blueOffset, updateDisplacementMap]);
+  }, [effectiveDistortionScale, effectiveRedOffset, effectiveBlueOffset, isClear, updateDisplacementMap]);
 
   const startAnimation = useCallback(() => {
+    if (!animated) return;
     const p = pointerRef.current;
     if (!p.isAnimating) {
       p.isAnimating = true;
       p.rafId = requestAnimationFrame(animatePointer);
     }
-  }, [animatePointer]);
+  }, [animated, animatePointer]);
 
-  // Pointer event handlers
+  // Pointer event handlers with tactile press support
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!interactive) return;
     const rect = containerRef.current?.getBoundingClientRect();
@@ -201,7 +227,7 @@ export function GlassSurface({
     const p = pointerRef.current;
     p.targetX = Math.max(0, Math.min(100, x));
     p.targetY = Math.max(0, Math.min(100, y));
-    p.targetActive = 1;
+    p.targetActive = p.isDown ? 1.35 : 1;
 
     startAnimation();
   };
@@ -214,26 +240,46 @@ export function GlassSurface({
 
   const handlePointerLeave = () => {
     if (!interactive) return;
+    pointerRef.current.isDown = false;
     pointerRef.current.targetActive = 0;
+    setIsPressed(false);
+    startAnimation();
+  };
+
+  const handlePointerDown = () => {
+    if (!interactive) return;
+    pointerRef.current.isDown = true;
+    pointerRef.current.targetActive = 1.35;
+    setIsPressed(true);
+    startAnimation();
+    onPress?.();
+  };
+
+  const handlePointerUp = () => {
+    if (!interactive) return;
+    pointerRef.current.isDown = false;
+    pointerRef.current.targetActive = 1;
+    setIsPressed(false);
     startAnimation();
   };
 
   // Base filter setup
   useEffect(() => {
+    if (isNone) return;
     updateDisplacementMap();
     [
-      { ref: redChannelRef, offset: redOffset },
-      { ref: greenChannelRef, offset: greenOffset },
-      { ref: blueChannelRef, offset: blueOffset },
+      { ref: redChannelRef, offset: effectiveRedOffset },
+      { ref: greenChannelRef, offset: effectiveGreenOffset },
+      { ref: blueChannelRef, offset: effectiveBlueOffset },
     ].forEach(({ ref, offset }) => {
       if (ref.current) {
-        ref.current.setAttribute("scale", (distortionScale + offset).toString());
+        ref.current.setAttribute("scale", (effectiveDistortionScale + offset).toString());
         ref.current.setAttribute("xChannelSelector", xChannel);
         ref.current.setAttribute("yChannelSelector", yChannel);
       }
     });
 
-    gaussianBlurRef.current?.setAttribute("stdDeviation", displace.toString());
+    gaussianBlurRef.current?.setAttribute("stdDeviation", effectiveDisplace.toString());
   }, [
     width,
     height,
@@ -242,19 +288,20 @@ export function GlassSurface({
     brightness,
     opacity,
     blur,
-    displace,
-    distortionScale,
-    redOffset,
-    greenOffset,
-    blueOffset,
+    effectiveDisplace,
+    effectiveDistortionScale,
+    effectiveRedOffset,
+    effectiveGreenOffset,
+    effectiveBlueOffset,
     xChannel,
     yChannel,
     mixBlendMode,
+    isNone,
   ]);
 
   // ResizeObserver to adapt SVG displacement map to dimensions
   useEffect(() => {
-    if (!containerRef.current || typeof window === "undefined") return;
+    if (!containerRef.current || typeof window === "undefined" || isNone) return;
 
     const resizeObserver = new ResizeObserver(() => {
       setTimeout(() => updateDisplacementMap(), 0);
@@ -268,11 +315,13 @@ export function GlassSurface({
         cancelAnimationFrame(pointerRef.current.rafId);
       }
     };
-  }, [updateDisplacementMap]);
+  }, [updateDisplacementMap, isNone]);
 
   useEffect(() => {
-    setTimeout(() => updateDisplacementMap(), 0);
-  }, [width, height, updateDisplacementMap]);
+    if (!isNone) {
+      setTimeout(() => updateDisplacementMap(), 0);
+    }
+  }, [width, height, updateDisplacementMap, isNone]);
 
   useEffect(() => {
     setSvgSupported(supportsSVGFilters());
@@ -295,13 +344,19 @@ export function GlassSurface({
     return div.style.backdropFilter !== "";
   };
 
+  const effectClass = isNone
+    ? "glass-surface--effect-none"
+    : isClear
+      ? "glass-surface--effect-clear"
+      : "glass-surface--effect-regular";
+
   const containerStyle: React.CSSProperties & Record<string, unknown> = {
     ...style,
     width: typeof width === "number" ? `${width}px` : width,
     height: typeof height === "number" ? `${height}px` : height,
     borderRadius: `${borderRadius}px`,
-    "--glass-frost": backgroundOpacity,
-    "--glass-saturation": saturation,
+    "--glass-frost": effectiveBgOpacity,
+    "--glass-saturation": effectiveSaturation,
     "--filter-id": `url(#${filterId})`,
     "--mouse-x": "50%",
     "--mouse-y": "50%",
@@ -314,82 +369,96 @@ export function GlassSurface({
       onPointerMove={handlePointerMove}
       onPointerEnter={handlePointerEnter}
       onPointerLeave={handlePointerLeave}
-      className={`glass-surface ${svgSupported ? "glass-surface--svg" : "glass-surface--fallback"} ${interactive ? "glass-surface--interactive" : ""} ${className}`}
+      onPointerDown={handlePointerDown}
+      onPointerUp={handlePointerUp}
+      className={`glass-surface ${svgSupported ? "glass-surface--svg" : "glass-surface--fallback"} ${effectClass} ${interactive ? "glass-surface--interactive" : ""} ${isPressed ? "glass-surface--pressed" : ""} ${className}`}
       style={containerStyle}
     >
-      <svg className="glass-surface__filter" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <filter
-            id={filterId}
-            colorInterpolationFilters="sRGB"
-            x="0%"
-            y="0%"
-            width="100%"
-            height="100%"
-          >
-            <feImage
-              ref={feImageRef}
-              x="0"
-              y="0"
+      {!isNone && (
+        <svg className="glass-surface__filter" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <filter
+              id={filterId}
+              colorInterpolationFilters="sRGB"
+              x="0%"
+              y="0%"
               width="100%"
               height="100%"
-              preserveAspectRatio="none"
-              result="map"
-            />
-            <feDisplacementMap
-              ref={redChannelRef}
-              in="SourceGraphic"
-              in2="map"
-              id="redchannel"
-              result="dispRed"
-            />
-            <feColorMatrix
-              in="dispRed"
-              type="matrix"
-              values={`1 0 0 0 0
-                      0 0 0 0 0
-                      0 0 0 0 0
-                      0 0 0 1 0`}
-              result="red"
-            />
-            <feDisplacementMap
-              ref={greenChannelRef}
-              in="SourceGraphic"
-              in2="map"
-              id="greenchannel"
-              result="dispGreen"
-            />
-            <feColorMatrix
-              in="dispGreen"
-              type="matrix"
-              values={`0 0 0 0 0
-                      0 1 0 0 0
-                      0 0 0 0 0
-                      0 0 0 1 0`}
-              result="green"
-            />
-            <feDisplacementMap
-              ref={blueChannelRef}
-              in="SourceGraphic"
-              in2="map"
-              id="bluechannel"
-              result="dispBlue"
-            />
-            <feColorMatrix
-              in="dispBlue"
-              type="matrix"
-              values={`0 0 0 0 0
-                      0 0 0 0 0
-                      0 0 1 0 0
-                      0 0 0 1 0`}
-              result="blue"
-            />
-            <feBlend in="red" in2="green" mode="screen" result="rg" />
-            <feBlend in="rg" in2="blue" mode="screen" result="output" />
-            <feGaussianBlur ref={gaussianBlurRef} in="output" stdDeviation={displace} />
-          </filter>
-        </defs>
-      </svg>
+            >
+              <feImage
+                ref={feImageRef}
+                x="0"
+                y="0"
+                width="100%"
+                height="100%"
+                preserveAspectRatio="none"
+                result="map"
+              />
+              <feDisplacementMap
+                ref={redChannelRef}
+                in="SourceGraphic"
+                in2="map"
+                id="redchannel"
+                result="dispRed"
+              />
+              <feColorMatrix
+                in="dispRed"
+                type="matrix"
+                values={`1 0 0 0 0
+                        0 0 0 0 0
+                        0 0 0 0 0
+                        0 0 0 1 0`}
+                result="red"
+              />
+              <feDisplacementMap
+                ref={greenChannelRef}
+                in="SourceGraphic"
+                in2="map"
+                id="greenchannel"
+                result="dispGreen"
+              />
+              <feColorMatrix
+                in="dispGreen"
+                type="matrix"
+                values={`0 0 0 0 0
+                        0 1 0 0 0
+                        0 0 0 0 0
+                        0 0 0 1 0`}
+                result="green"
+              />
+              <feDisplacementMap
+                ref={blueChannelRef}
+                in="SourceGraphic"
+                in2="map"
+                id="bluechannel"
+                result="dispBlue"
+              />
+              <feColorMatrix
+                in="dispBlue"
+                type="matrix"
+                values={`0 0 0 0 0
+                        0 0 0 0 0
+                        0 0 1 0 0
+                        0 0 0 1 0`}
+                result="blue"
+              />
+              <feBlend in="red" in2="green" mode="screen" result="rg" />
+              <feBlend in="rg" in2="blue" mode="screen" result="output" />
+              <feGaussianBlur ref={gaussianBlurRef} in="output" stdDeviation={effectiveDisplace} />
+            </filter>
+          </defs>
+        </svg>
+      )}
+
+      {/* Tint Color Overlay Layer */}
+      {tintColor && (
+        <div
+          className="glass-surface__tint"
+          style={{ backgroundColor: tintColor }}
+          aria-hidden="true"
+        />
+      )}
+
       <div className="glass-surface__content">{children}</div>
     </div>
   );

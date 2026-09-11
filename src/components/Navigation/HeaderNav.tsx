@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { GlassSurface } from "@/components/Navigation/GlassSurface";
 
 const NAV_LINKS = [
@@ -9,8 +10,13 @@ const NAV_LINKS = [
   { id: "#manifesto", label: "07 / Resolution" },
 ];
 
-/** Floating liquid glass navigation bar with logo and section links */
+/**
+ * Floating Apple iOS 26 Liquid Glass Navigation Bar
+ * Features tactile press elasticity, dynamic liquid refraction, and droplet tab adhesion.
+ */
 export function HeaderNav() {
+  const [activeTab, setActiveTab] = useState<string | null>(null);
+
   return (
     <header className="fixed inset-x-0 top-0 z-50 flex justify-center px-3 pt-3 sm:px-6 pointer-events-none">
       <div className="w-full max-w-7xl pointer-events-auto">
@@ -22,15 +28,16 @@ export function HeaderNav() {
           brightness={50}
           opacity={0.93}
           blur={11}
-          displace={0.6}
+          displace={0.55}
           backgroundOpacity={0.08}
-          saturation={1.5}
+          saturation={1.45}
           distortionScale={-180}
           redOffset={-4}
           greenOffset={8}
           blueOffset={18}
           mixBlendMode="difference"
           interactive={true}
+          effect="regular"
           className="w-full"
         >
           <div className="flex w-full items-center justify-between px-5 py-3 md:px-7">
@@ -38,7 +45,7 @@ export function HeaderNav() {
             <a
               href="#top"
               aria-label="Home"
-              className="flex items-center gap-2.5 font-mono text-xs font-semibold tracking-[0.2em] text-foreground uppercase transition-colors hover:text-accent shrink-0"
+              className="group flex items-center gap-2.5 font-mono text-xs font-semibold tracking-[0.2em] text-foreground uppercase transition-all duration-200 hover:text-accent shrink-0 active:scale-95"
             >
               <svg
                 width="16"
@@ -49,7 +56,7 @@ export function HeaderNav() {
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                className="text-foreground"
+                className="text-foreground transition-transform duration-300 group-hover:rotate-12 group-hover:text-accent"
               >
                 <polygon points="12 2 2 7 12 12 22 7 12 2" />
                 <polyline points="2 17 12 22 22 17" />
@@ -58,17 +65,26 @@ export function HeaderNav() {
               <span>[ LOGO ]</span>
             </a>
 
-            {/* Section Navigation Links */}
-            <nav className="flex items-center gap-3 sm:gap-6 overflow-x-auto no-scrollbar">
-              {NAV_LINKS.map((link) => (
-                <a
-                  key={link.id}
-                  href={link.id}
-                  className="font-mono text-[0.58rem] tracking-[0.18em] whitespace-nowrap text-muted-foreground uppercase transition-colors duration-200 hover:text-accent"
-                >
-                  {link.label}
-                </a>
-              ))}
+            {/* Section Navigation Links with Liquid Droplet Hover Pill */}
+            <nav className="flex items-center gap-1.5 sm:gap-3 overflow-x-auto no-scrollbar">
+              {NAV_LINKS.map((link) => {
+                const isHovered = activeTab === link.id;
+                return (
+                  <a
+                    key={link.id}
+                    href={link.id}
+                    onMouseEnter={() => setActiveTab(link.id)}
+                    onMouseLeave={() => setActiveTab(null)}
+                    className={`relative px-2.5 py-1 rounded-full font-mono text-[0.58rem] tracking-[0.18em] whitespace-nowrap uppercase transition-all duration-200 ${
+                      isHovered
+                        ? "text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.4),0_2px_8px_rgba(0,0,0,0.3)] bg-white/[0.09] backdrop-blur-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {link.label}
+                  </a>
+                );
+              })}
             </nav>
           </div>
         </GlassSurface>
