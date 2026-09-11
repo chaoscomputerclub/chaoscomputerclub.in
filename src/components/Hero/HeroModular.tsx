@@ -43,7 +43,7 @@ export function HeroModular() {
       onPointerMove={() => {
         if (!isHovered) setIsHovered(true);
       }}
-      className="grain relative flex h-screen min-h-[100dvh] w-full items-center justify-center overflow-hidden border-b border-border"
+      className="grain relative flex h-screen min-h-[100dvh] w-full overflow-hidden border-b border-border"
     >
       {/* Topography Interactive Background - Full Screen */}
       <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
@@ -73,31 +73,32 @@ export function HeroModular() {
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-background/40 via-transparent to-background/80" />
       </div>
 
-      {/* Hero content: Pure "CHAOS" interactive text with cinematic optical blur on hover */}
-      <div className="relative z-20 w-full px-4 pt-16 md:px-8 md:pt-20">
-        <div
-          data-spec-box
-          className="cursor-target mx-auto max-w-6xl relative cursor-crosshair"
-          aria-label="Chaos"
-          role="img"
-          onPointerEnter={() => setIsHovered(true)}
-        >
-          {mounted ? (
-            <ParticleText
-              text="CHAOS"
-              colors={["#ffffff", "#ffffff", "#ffffff", "#ffffff", "#CCFF00"]}
-              particleSize={2.4}
-              particleGap={0.6}
-              friction={0.8}
-              ease={0.07}
-              mouseControls={{ enabled: true, radius: 160, strength: 5.5 }}
-              className="w-full aspect-[331/77] drop-shadow-[0_0_50px_rgba(204,255,0,0.22)]"
-              modular
-            />
-          ) : (
+      {/* CHAOS particle canvas — fills the full hero section so scattered particles never clip */}
+      <div
+        data-spec-box
+        className="cursor-target absolute inset-0 z-20 cursor-crosshair"
+        aria-label="Chaos"
+        role="img"
+        onPointerEnter={() => setIsHovered(true)}
+      >
+        {mounted ? (
+          <ParticleText
+            text="CHAOS"
+            colors={["#ffffff", "#ffffff", "#ffffff", "#ffffff", "#CCFF00"]}
+            particleSize={2.4}
+            particleGap={0.6}
+            friction={0.8}
+            ease={0.07}
+            mouseControls={{ enabled: true, radius: 160, strength: 5.5 }}
+            className="h-full w-full drop-shadow-[0_0_50px_rgba(204,255,0,0.22)]"
+            modular
+          />
+        ) : (
+          /* SSR fallback — centers the SVG glyph in the full viewport */
+          <div className="flex h-full w-full items-center justify-center px-4 pt-20 md:px-8 md:pt-24">
             <svg
               viewBox={`0 0 ${totalW} ${totalH}`}
-              className="w-full text-foreground drop-shadow-[0_0_50px_rgba(204,255,0,0.22)]"
+              className="w-full max-w-5xl text-foreground drop-shadow-[0_0_50px_rgba(204,255,0,0.22)]"
               preserveAspectRatio="xMidYMid meet"
             >
               {WORD.split("").map((c, charIdx) => {
@@ -127,8 +128,8 @@ export function HeroModular() {
                 );
               })}
             </svg>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </section>
   );
