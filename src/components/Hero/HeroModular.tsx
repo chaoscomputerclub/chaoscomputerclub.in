@@ -1,7 +1,4 @@
 import { motion } from "framer-motion";
-import { MaskedLine, Rise } from "@/components/Motion/MaskedLine";
-import { Button } from "@/components/ui/button";
-import { Magnetic } from "@/components/Motion/Magnetic";
 import { Topography } from "@/components/Background/Topography";
 
 const EASE = [0.16, 1, 0.3, 1] as const;
@@ -61,8 +58,9 @@ export function HeroModular() {
   return (
     <section
       id="top"
-      className="grain relative overflow-hidden border-b border-border pt-28 pb-16 md:pt-36"
+      className="grain relative flex min-h-[75vh] items-center justify-center overflow-hidden border-b border-border py-24 md:min-h-[85vh] md:py-32"
     >
+      {/* Topography Interactive Background */}
       <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
         <Topography
           lowColor="#ffffff"
@@ -87,19 +85,15 @@ export function HeroModular() {
           mouseRadius={0.3}
           mouseStrength={0.4}
         />
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-background/40 via-transparent to-background/80" />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-background/30 via-transparent to-background/80" />
       </div>
 
-      <div className="relative z-10 px-4 md:px-6">
-        <div className="flex items-baseline justify-between">
-          <span className="kicker">(01 // The discovery)</span>
-          <span className="kicker notes-only">[X: 0, Y: 0]</span>
-        </div>
-
-        <div data-spec-box className="mt-8 md:mt-12" aria-label="Chaos" role="img">
+      {/* Hero content: Pure "CHAOS" geometric matrix */}
+      <div className="relative z-10 w-full px-4 md:px-8">
+        <div data-spec-box className="mx-auto max-w-6xl" aria-label="Chaos" role="img">
           <svg
             viewBox={`0 0 ${totalW} ${totalH}`}
-            className="w-full text-foreground"
+            className="w-full text-foreground drop-shadow-[0_0_40px_rgba(204,255,0,0.18)]"
             preserveAspectRatio="xMidYMid meet"
           >
             {WORD.split("").map((c, i) => (
@@ -107,43 +101,9 @@ export function HeroModular() {
             ))}
           </svg>
         </div>
-
-        <div className="mt-10 grid gap-10 border-t border-border pt-8 md:grid-cols-12">
-          <div className="md:col-span-5">
-            <MaskedLine as="h1" className="text-2xl font-medium md:text-3xl" delay={0.1}>
-              Technology is everywhere. Understanding it is not.
-            </MaskedLine>
-          </div>
-          <div className="md:col-span-5 md:col-start-7">
-            <Rise delay={0.2}>
-              <p className="max-w-md text-sm text-muted-foreground">
-                A student can spend years studying computer science without ever feeling the
-                pressure of a clock, breaking a system to find its breaking point, or competing
-                against someone impossibly better. We exist in that gap.
-              </p>
-            </Rise>
-            <Rise delay={0.3}>
-              <div className="mt-8 flex flex-wrap items-center gap-3">
-                <Magnetic>
-                  <Button
-                    asChild
-                    className="h-10 rounded-none bg-accent px-5 font-mono text-[0.6rem] tracking-[0.18em] text-accent-foreground uppercase hover:bg-accent/85"
-                  >
-                    <a href="#forge">[ Enter the lab ]</a>
-                  </Button>
-                </Magnetic>
-                <Button
-                  asChild
-                  variant="outline"
-                  className="h-10 rounded-none border-border-strong bg-transparent px-5 font-mono text-[0.6rem] tracking-[0.18em] uppercase hover:bg-foreground hover:text-background"
-                >
-                  <a href="#gap">[ Read specification ]</a>
-                </Button>
-              </div>
-            </Rise>
-          </div>
-        </div>
       </div>
     </section>
   );
 }
+
+export default HeroModular;
