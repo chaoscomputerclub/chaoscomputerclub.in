@@ -1,5 +1,5 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import { useEffect, useState, useRef, useId } from "react";
+import { useEffect, useState, useRef, useId, type MouseEvent } from "react";
 import "./GlassSurface.css";
 
 export interface GlassSurfaceProps {
@@ -29,18 +29,18 @@ export function GlassSurface({
   children,
   width = "100%",
   height = "auto",
-  borderRadius = 0,
-  borderWidth = 0.07,
+  borderRadius = 16,
+  borderWidth = 0.08,
   brightness = 50,
-  opacity = 0.93,
-  blur = 11,
-  displace = 0,
-  backgroundOpacity = 0.45,
-  saturation = 1.2,
-  distortionScale = -180,
+  opacity = 0.92,
+  blur = 10,
+  displace = 0.5,
+  backgroundOpacity = 0.1,
+  saturation = 1.4,
+  distortionScale = -160,
   redOffset = 0,
-  greenOffset = 10,
-  blueOffset = 20,
+  greenOffset = 12,
+  blueOffset = 24,
   xChannel = "R",
   yChannel = "G",
   mixBlendMode = "difference",
@@ -51,6 +51,7 @@ export function GlassSurface({
   const filterId = `glass-filter-${uniqueId}`;
   const redGradId = `red-grad-${uniqueId}`;
   const blueGradId = `blue-grad-${uniqueId}`;
+  const innerBlurId = `inner-blur-${uniqueId}`;
 
   const [svgSupported, setSvgSupported] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -62,26 +63,31 @@ export function GlassSurface({
 
   const generateDisplacementMap = () => {
     const rect = containerRef.current?.getBoundingClientRect();
-    const actualWidth = Math.max(10, Math.floor(rect?.width || 400));
-    const actualHeight = Math.max(10, Math.floor(rect?.height || 60));
-    const edgeSize = Math.min(actualWidth, actualHeight) * (borderWidth * 0.5);
+    const actualWidth = Math.max(20, Math.floor(rect?.width || 400));
+    const actualHeight = Math.max(20, Math.floor(rect?.height || 60));
+    const edgeSize = Math.max(1, Math.min(actualWidth, actualHeight) * (borderWidth * 0.5));
+    const midGray = Math.round((brightness / 100) * 255);
 
+    // Strictly standard SVG 1.1 with valid hex colors, opacities, and filter elements
     const svgContent = `
       <svg viewBox="0 0 ${actualWidth} ${actualHeight}" xmlns="http://www.w3.org/2000/svg">
         <defs>
+          <filter id="${innerBlurId}">
+            <feGaussianBlur stdDeviation="${blur}" />
+          </filter>
           <linearGradient id="${redGradId}" x1="100%" y1="0%" x2="0%" y2="0%">
-            <stop offset="0%" stop-color="#0000"/>
-            <stop offset="100%" stop-color="red"/>
+            <stop offset="0%" stop-color="#000000" stop-opacity="0"/>
+            <stop offset="100%" stop-color="#ff0000" stop-opacity="1"/>
           </linearGradient>
           <linearGradient id="${blueGradId}" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stop-color="#0000"/>
-            <stop offset="100%" stop-color="blue"/>
+            <stop offset="0%" stop-color="#000000" stop-opacity="0"/>
+            <stop offset="100%" stop-color="#0000ff" stop-opacity="1"/>
           </linearGradient>
         </defs>
-        <rect x="0" y="0" width="${actualWidth}" height="${actualHeight}" fill="black"></rect>
+        <rect x="0" y="0" width="${actualWidth}" height="${actualHeight}" fill="#000000" />
         <rect x="0" y="0" width="${actualWidth}" height="${actualHeight}" rx="${borderRadius}" fill="url(#${redGradId})" />
         <rect x="0" y="0" width="${actualWidth}" height="${actualHeight}" rx="${borderRadius}" fill="url(#${blueGradId})" style="mix-blend-mode: ${mixBlendMode}" />
-        <rect x="${edgeSize}" y="${edgeSize}" width="${actualWidth - edgeSize * 2}" height="${actualHeight - edgeSize * 2}" rx="${borderRadius}" fill="hsl(0 0% ${brightness}% / ${opacity})" style="filter:blur(${blur}px)" />
+        <rect x="${edgeSize}" y="${edgeSize}" width="${Math.max(1, actualWidth - edgeSize * 2)}" height="${Math.max(1, actualHeight - edgeSize * 2)}" rx="${borderRadius}" fill="rgb(${midGray},${midGray},${midGray})" fill-opacity="${opacity}" filter="url(#${innerBlurId})" />
       </svg>
     `;
 
@@ -89,7 +95,11 @@ export function GlassSurface({
   };
 
   const updateDisplacementMap = () => {
-    feImageRef.current?.setAttribute("href", generateDisplacementMap());
+    const dataUri = generateDisplacementMap();
+    if (feImageRef.current) {
+      feImageRef.current.setAttribute("href", dataUri);
+      feImageRef.current.setAttributeNS("http://www.w3.org/1999/xlink", "xlink:href", dataUri);
+    }
   };
 
   useEffect(() => {
@@ -164,6 +174,15 @@ export function GlassSurface({
     return div.style.backdropFilter !== "";
   };
 
+  const handleMouseMove = (e: MouseEvent<HTMLDivElement>) => {
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    containerRef.current?.style.setProperty("--mouse-x", `${x}%`);
+    containerRef.current?.style.setProperty("--mouse-y", `${y}%`);
+  };
+
   const containerStyle: React.CSSProperties & Record<string, unknown> = {
     ...style,
     width: typeof width === "number" ? `${width}px` : width,
@@ -177,6 +196,7 @@ export function GlassSurface({
   return (
     <div
       ref={containerRef}
+      onMouseMove={handleMouseMove}
       className={`glass-surface ${svgSupported ? "glass-surface--svg" : "glass-surface--fallback"} ${className}`}
       style={containerStyle}
     >
@@ -185,10 +205,10 @@ export function GlassSurface({
           <filter
             id={filterId}
             colorInterpolationFilters="sRGB"
-            x="0%"
-            y="0%"
-            width="100%"
-            height="100%"
+            x="-20%"
+            y="-20%"
+            width="140%"
+            height="140%"
           >
             <feImage
               ref={feImageRef}
@@ -244,6 +264,8 @@ export function GlassSurface({
           </filter>
         </defs>
       </svg>
+      {/* Interactive caustic light sheen that catches illumination */}
+      <div className="glass-surface__sheen" aria-hidden />
       <div className="glass-surface__content">{children}</div>
     </div>
   );
