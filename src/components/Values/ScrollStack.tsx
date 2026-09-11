@@ -1,3 +1,10 @@
+/**
+ * Chaos Computer Club India — chaoscomputerclub.in
+ *
+ * Copyright (c) 2026 Chaos Computer Club India
+ * Licensed under the MIT License. See LICENSE in the project root for license information.
+ */
+
 /* eslint-disable react-hooks/exhaustive-deps */
 import React, { useEffect, useRef, useCallback } from "react";
 import type { ReactNode } from "react";

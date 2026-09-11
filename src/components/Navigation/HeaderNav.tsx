@@ -1,3 +1,10 @@
+/**
+ * Chaos Computer Club India — chaoscomputerclub.in
+ *
+ * Copyright (c) 2026 Chaos Computer Club India
+ * Licensed under the MIT License. See LICENSE in the project root for license information.
+ */
+
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useLenisScroll } from "@/components/LenisProvider";
 import { StaggeredMenu } from "@/components/Navigation/StaggeredMenu";

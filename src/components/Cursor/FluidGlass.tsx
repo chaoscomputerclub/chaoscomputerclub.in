@@ -1,3 +1,10 @@
+/**
+ * Chaos Computer Club India — chaoscomputerclub.in
+ *
+ * Copyright (c) 2026 Chaos Computer Club India
+ * Licensed under the MIT License. See LICENSE in the project root for license information.
+ */
+
 import * as THREE from "three";
 import { useRef, useState, useEffect, memo, Suspense } from "react";
 import { Canvas, createPortal, useFrame, useThree } from "@react-three/fiber";

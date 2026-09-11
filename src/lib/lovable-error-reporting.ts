@@ -1,3 +1,10 @@
+/**
+ * Chaos Computer Club India — chaoscomputerclub.in
+ *
+ * Copyright (c) 2026 Chaos Computer Club India
+ * Licensed under the MIT License. See LICENSE in the project root for license information.
+ */
+
 type LovableErrorOptions = {
   mechanism?: "manual" | "onerror" | "unhandledrejection" | "react_error_boundary";
   handled?: boolean;

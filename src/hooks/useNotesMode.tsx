@@ -1,3 +1,10 @@
+/**
+ * Chaos Computer Club India — chaoscomputerclub.in
+ *
+ * Copyright (c) 2026 Chaos Computer Club India
+ * Licensed under the MIT License. See LICENSE in the project root for license information.
+ */
+
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 
 type NotesContext = { notes: boolean; toggle: () => void };
