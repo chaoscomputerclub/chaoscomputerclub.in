@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { MaskedLine, Rise } from "@/components/Motion/MaskedLine";
 import { Button } from "@/components/ui/button";
 import { Magnetic } from "@/components/Motion/Magnetic";
-import { WebThreads } from "@/components/Background/WebThreads";
+import { Topography } from "@/components/Background/Topography";
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 
@@ -64,28 +64,28 @@ export function HeroModular() {
       className="grain relative overflow-hidden border-b border-border pt-28 pb-16 md:pt-36"
     >
       <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
-        <WebThreads
-          color1="#CBFF00"
-          color2="#000000"
-          color3="#c8cbb9"
-          speed={0.2}
-          threadCount={6}
-          frequency={5}
-          spread={0.18}
-          taper={1}
-          position={0.5}
-          fanMode="center"
-          glow={0.02}
-          falloff={0.6}
-          thickness={1.1}
-          brightness={0.6}
+        <Topography
+          lowColor="#ffffff"
+          midColor="#CCFF00"
+          highColor="#ffffff"
+          speed={0.35}
+          morphAmount={1.2}
+          morphSpeed={0.05}
+          bands={3}
+          thickness={0.01}
+          scale={2}
+          pixelSize={1}
+          glow={0.15}
+          colorMode="alternating"
+          contrast={3}
+          brightness={1.1}
+          fillBands={false}
           opacity={1}
-          mirror
-          shimmer={false}
-          grain={false}
+          grain
           grainIntensity={0.05}
           mouseInteraction
-          mouseStrength={0.3}
+          mouseRadius={0.3}
+          mouseStrength={0.4}
         />
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-background/40 via-transparent to-background/80" />
       </div>

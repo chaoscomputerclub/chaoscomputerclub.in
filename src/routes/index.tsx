@@ -38,16 +38,7 @@ function Index() {
     <NotesModeProvider>
       <LenisProvider>
         <CurtainPreloader />
-        <FluidGlassCursor
-          scale={0.25}
-          ior={1.15}
-          thickness={2}
-          transmission={1}
-          roughness={0}
-          chromaticAberration={0.05}
-          anisotropy={0.01}
-          accentColor="#ccff00"
-        />
+        <FluidGlassCursor accentColor="#ccff00" size={72} />
         <NotesModeOverlay />
         <HeaderNav />
         <BackNav />

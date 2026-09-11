@@ -1,206 +1,185 @@
-import * as THREE from "three";
-import { useRef, useState, useEffect, Suspense } from "react";
-import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { useGLTF, MeshTransmissionMaterial } from "@react-three/drei";
-import { easing } from "maath";
+import { useEffect, useRef, useState } from "react";
 
 export interface FluidGlassCursorProps {
-  scale?: number;
-  ior?: number;
-  thickness?: number;
-  transmission?: number;
-  roughness?: number;
-  chromaticAberration?: number;
-  anisotropy?: number;
   accentColor?: string;
+  size?: number;
   showCenterReticle?: boolean;
 }
 
-function LensModel({
-  scale = 0.25,
-  ior = 1.15,
-  thickness = 2,
-  transmission = 1,
-  roughness = 0,
-  chromaticAberration = 0.05,
-  anisotropy = 0.01,
-  accentColor = "#ccff00",
-  isHovered = false,
-}: {
-  scale?: number;
-  ior?: number;
-  thickness?: number;
-  transmission?: number;
-  roughness?: number;
-  chromaticAberration?: number;
-  anisotropy?: number;
-  accentColor?: string;
-  isHovered?: boolean;
-}) {
-  const ref = useRef<THREE.Mesh>(null);
-  const { nodes } = useGLTF("/assets/3d/lens.glb") as unknown as {
-    nodes: Record<string, THREE.Mesh>;
-  };
-  const { viewport, camera } = useThree();
-  const prevPos = useRef<[number, number]>([0, 0]);
-
-  useFrame((state, delta) => {
-    if (!ref.current) return;
-    const { pointer } = state;
-    const v = viewport.getCurrentViewport(camera, [0, 0, 15]);
-    const destX = (pointer.x * v.width) / 2;
-    const destY = (pointer.y * v.height) / 2;
-
-    // Smooth inertia tracking
-    easing.damp3(ref.current.position, [destX, destY, 15], 0.12, delta);
-
-    // Calculate velocity for subtle 3D optical tilt
-    const vx = destX - prevPos.current[0];
-    const vy = destY - prevPos.current[1];
-    prevPos.current = [destX, destY];
-
-    const targetRotX = Math.PI / 2 - vy * 0.15;
-    const targetRotY = vx * 0.15;
-    easing.damp(ref.current.rotation, "x", targetRotX, 0.15, delta);
-    easing.damp(ref.current.rotation, "y", targetRotY, 0.15, delta);
-
-    // Hover expansion
-    const targetScale = isHovered ? scale * 1.25 : scale;
-    easing.damp(ref.current.scale, "x", targetScale, 0.15, delta);
-    easing.damp(ref.current.scale, "y", targetScale, 0.15, delta);
-    easing.damp(ref.current.scale, "z", targetScale, 0.15, delta);
-  });
-
-  const geometry = nodes["Cylinder"]?.geometry;
-  if (!geometry) return null;
-
-  return (
-    <mesh ref={ref} scale={scale} rotation-x={Math.PI / 2} geometry={geometry}>
-      <MeshTransmissionMaterial
-        ior={ior}
-        thickness={thickness}
-        transmission={transmission}
-        roughness={roughness}
-        chromaticAberration={isHovered ? chromaticAberration * 1.8 : chromaticAberration}
-        anisotropy={anisotropy}
-        color="#f2f2ee"
-        attenuationColor={accentColor}
-        attenuationDistance={1.4}
-        distortion={0.12}
-        distortionScale={0.15}
-        temporalDistortion={0.05}
-      />
-    </mesh>
-  );
-}
-
 export function FluidGlassCursor({
-  scale = 0.25,
-  ior = 1.15,
-  thickness = 2,
-  transmission = 1,
-  roughness = 0,
-  chromaticAberration = 0.05,
-  anisotropy = 0.01,
   accentColor = "#ccff00",
+  size = 72,
   showCenterReticle = true,
 }: FluidGlassCursorProps) {
   const [mounted, setMounted] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
-  const [pos, setPos] = useState({ x: -100, y: -100, visible: false });
+  const [isClicking, setIsClicking] = useState(false);
+
+  // Position references for 60-120fps RAF interpolation
+  const mousePos = useRef({ x: -200, y: -200 });
+  const currentPos = useRef({ x: -200, y: -200 });
+  const velocity = useRef({ x: 0, y: 0 });
+  const cursorRef = useRef<HTMLDivElement>(null);
+  const lensRef = useRef<HTMLDivElement>(null);
+  const specRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Only enable on client and pointer-fine devices (desktops/mice)
+    // Only enable on client and pointer-fine devices (desktop/mouse)
     if (typeof window === "undefined") return;
     const isFinePointer = window.matchMedia("(pointer: fine)").matches;
     if (!isFinePointer) return;
 
     setMounted(true);
 
-    const handlePointerMove = (e: PointerEvent) => {
-      setPos({ x: e.clientX, y: e.clientY, visible: true });
+    const onPointerMove = (e: PointerEvent) => {
+      mousePos.current = { x: e.clientX, y: e.clientY };
+      if (!isVisible) setIsVisible(true);
 
       const target = e.target as HTMLElement | null;
       if (target) {
-        const interactive = target.closest("a, button, [role='button'], input, textarea, select");
+        const interactive = target.closest(
+          "a, button, [role='button'], input, textarea, select, [data-interactive]",
+        );
         setIsHovered(!!interactive);
       }
     };
 
-    const handlePointerLeave = () => {
-      setPos((p) => ({ ...p, visible: false }));
+    const onPointerDown = () => setIsClicking(true);
+    const onPointerUp = () => setIsClicking(false);
+
+    const onPointerLeave = () => {
+      setIsVisible(false);
       setIsHovered(false);
     };
 
-    window.addEventListener("pointermove", handlePointerMove, { passive: true });
-    document.addEventListener("mouseleave", handlePointerLeave);
+    window.addEventListener("pointermove", onPointerMove, { passive: true });
+    window.addEventListener("pointerdown", onPointerDown);
+    window.addEventListener("pointerup", onPointerUp);
+    document.addEventListener("mouseleave", onPointerLeave);
+
+    // High performance RAF loop for fluid glass inertia and tilt
+    let rafId: number;
+    const renderLoop = () => {
+      const ease = 0.18;
+      const dx = mousePos.current.x - currentPos.current.x;
+      const dy = mousePos.current.y - currentPos.current.y;
+
+      velocity.current.x = dx;
+      velocity.current.y = dy;
+
+      currentPos.current.x += dx * ease;
+      currentPos.current.y += dy * ease;
+
+      if (cursorRef.current) {
+        cursorRef.current.style.transform = `translate3d(${currentPos.current.x}px, ${currentPos.current.y}px, 0)`;
+      }
+
+      // Tilt the specular glass reflection based on velocity
+      if (specRef.current) {
+        const tiltX = Math.max(-25, Math.min(25, dy * 0.4));
+        const tiltY = Math.max(-25, Math.min(25, -dx * 0.4));
+        specRef.current.style.transform = `rotateX(${tiltX}deg) rotateY(${tiltY}deg)`;
+      }
+
+      rafId = requestAnimationFrame(renderLoop);
+    };
+
+    rafId = requestAnimationFrame(renderLoop);
 
     return () => {
-      window.removeEventListener("pointermove", handlePointerMove);
-      document.removeEventListener("mouseleave", handlePointerLeave);
+      cancelAnimationFrame(rafId);
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerdown", onPointerDown);
+      window.removeEventListener("pointerup", onPointerUp);
+      document.removeEventListener("mouseleave", onPointerLeave);
     };
-  }, []);
+  }, [isVisible]);
 
-  if (!mounted || !pos.visible) return null;
+  if (!mounted || !isVisible) return null;
+
+  const currentSize = isClicking ? size * 0.88 : isHovered ? size * 1.35 : size;
 
   return (
-    <>
-      {/* Real-time optical refraction & contrast ring on the DOM */}
+    <div
+      ref={cursorRef}
+      aria-hidden
+      className="pointer-events-none fixed top-0 left-0 z-50 -translate-x-1/2 -translate-y-1/2 will-change-transform"
+      style={{
+        width: `${currentSize}px`,
+        height: `${currentSize}px`,
+        transition:
+          "width 200ms cubic-bezier(0.16,1,0.3,1), height 200ms cubic-bezier(0.16,1,0.3,1)",
+      }}
+    >
+      {/* 3D Glass Lens Body with Refraction, Caustics, and Chromatic Aberration Rim */}
       <div
-        className="pointer-events-none fixed z-40 -translate-x-1/2 -translate-y-1/2 rounded-full transition-[width,height,border-color] duration-200 ease-out"
+        ref={lensRef}
+        className="relative h-full w-full rounded-full"
         style={{
-          left: pos.x,
-          top: pos.y,
-          width: isHovered ? 84 : 64,
-          height: isHovered ? 84 : 64,
-          backdropFilter: "contrast(1.18) brightness(1.08) blur(0.3px)",
-          WebkitBackdropFilter: "contrast(1.18) brightness(1.08) blur(0.3px)",
+          // Optical magnification & contrast of DOM elements underneath
+          backdropFilter: isHovered
+            ? "contrast(1.3) brightness(1.15) saturate(1.2)"
+            : "contrast(1.18) brightness(1.08) saturate(1.1)",
+          WebkitBackdropFilter: isHovered
+            ? "contrast(1.3) brightness(1.15) saturate(1.2)"
+            : "contrast(1.18) brightness(1.08) saturate(1.1)",
+
+          // Multilayer chromatic glass border: acid-lime fresnel edge + chromatic dispersion
           boxShadow: isHovered
-            ? "0 0 25px rgba(204,255,0,0.22), inset 0 0 15px rgba(255,255,255,0.12)"
-            : "0 0 16px rgba(204,255,0,0.12), inset 0 0 10px rgba(255,255,255,0.06)",
-          border: isHovered ? "1px solid rgba(204,255,0,0.4)" : "1px solid rgba(255,255,255,0.15)",
+            ? `0 0 28px rgba(204,255,0,0.3), inset 0 0 16px rgba(255,255,255,0.25), inset 0 0 32px rgba(204,255,0,0.15)`
+            : `0 0 18px rgba(204,255,0,0.14), inset 0 0 12px rgba(255,255,255,0.15), inset 0 0 22px rgba(204,255,0,0.08)`,
+
+          border: isHovered
+            ? `1.5px solid rgba(204,255,0,0.65)`
+            : `1px solid rgba(255,255,255,0.25)`,
+
+          background: isHovered
+            ? "radial-gradient(circle at 35% 35%, rgba(255,255,255,0.15), rgba(204,255,0,0.08) 45%, rgba(0,0,0,0.02) 80%)"
+            : "radial-gradient(circle at 35% 35%, rgba(255,255,255,0.12), rgba(204,255,0,0.04) 50%, rgba(0,0,0,0.01) 85%)",
         }}
       >
+        {/* Specular 3D highlight crescent that responds to tilt */}
+        <div
+          ref={specRef}
+          className="absolute inset-1 rounded-full pointer-events-none transition-transform duration-75 ease-out"
+          style={{
+            background:
+              "linear-gradient(135deg, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0.08) 25%, transparent 60%)",
+          }}
+        />
+
+        {/* Optical center focal crosshairs / precision telemetry dot */}
         {showCenterReticle && (
-          <div className="absolute inset-0 grid place-items-center">
+          <div className="absolute inset-0 grid place-items-center pointer-events-none">
+            {/* Fine horizontal & vertical hair crosshairs */}
             <div
-              className="h-1.5 w-1.5 rounded-full transition-transform duration-150"
+              className="absolute h-[1px] w-3 transition-opacity duration-150"
+              style={{
+                backgroundColor: isHovered ? accentColor : "rgba(255,255,255,0.45)",
+                opacity: isHovered ? 0.9 : 0.4,
+              }}
+            />
+            <div
+              className="absolute w-[1px] h-3 transition-opacity duration-150"
+              style={{
+                backgroundColor: isHovered ? accentColor : "rgba(255,255,255,0.45)",
+                opacity: isHovered ? 0.9 : 0.4,
+              }}
+            />
+            {/* Core focal bead */}
+            <div
+              className="h-1.5 w-1.5 rounded-full transition-all duration-150"
               style={{
                 backgroundColor: accentColor,
-                transform: isHovered ? "scale(1.5)" : "scale(1)",
-                boxShadow: `0 0 6px ${accentColor}`,
+                transform: isClicking ? "scale(0.7)" : isHovered ? "scale(1.4)" : "scale(1)",
+                boxShadow: `0 0 8px ${accentColor}`,
               }}
             />
           </div>
         )}
       </div>
-
-      {/* 3D WebGL Fluid Glass Canvas */}
-      <div className="pointer-events-none fixed inset-0 z-50 h-screen w-screen overflow-hidden">
-        <Canvas
-          camera={{ position: [0, 0, 20], fov: 15 }}
-          gl={{ alpha: true, toneMapping: THREE.NoToneMapping }}
-          style={{ pointerEvents: "none" }}
-        >
-          <Suspense fallback={null}>
-            <ambientLight intensity={0.8} />
-            <directionalLight position={[5, 5, 10]} intensity={1.2} />
-            <pointLight position={[-5, -5, 5]} intensity={0.6} color={accentColor} />
-            <LensModel
-              scale={scale}
-              ior={ior}
-              thickness={thickness}
-              transmission={transmission}
-              roughness={roughness}
-              chromaticAberration={chromaticAberration}
-              anisotropy={anisotropy}
-              accentColor={accentColor}
-              isHovered={isHovered}
-            />
-          </Suspense>
-        </Canvas>
-      </div>
-    </>
+    </div>
   );
 }
 
