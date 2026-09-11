@@ -1,5 +1,7 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Topography } from "@/components/Background/Topography";
+import { ShapeBlur } from "@/components/Hero/ShapeBlur";
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 
@@ -50,6 +52,7 @@ function Glyph({ char, offset, index }: { char: string; offset: number; index: n
 }
 
 export function HeroModular() {
+  const [isHovered, setIsHovered] = useState(false);
   const glyphW = 5 * (U + GAP);
   const letterGap = U * 1.4;
   const totalW = WORD.length * glyphW + (WORD.length - 1) * letterGap;
@@ -58,6 +61,8 @@ export function HeroModular() {
   return (
     <section
       id="top"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
       className="grain relative flex h-screen min-h-[100dvh] w-full items-center justify-center overflow-hidden border-b border-border"
     >
       {/* Topography Interactive Background - Full Screen */}
@@ -88,12 +93,29 @@ export function HeroModular() {
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-background/40 via-transparent to-background/80" />
       </div>
 
-      {/* Hero content: Pure "CHAOS" geometric matrix centered full-screen */}
+      {/* Hero content: Pure "CHAOS" geometric matrix with React Bits ShapeBlur on hover */}
       <div className="relative z-10 w-full px-4 pt-16 md:px-8 md:pt-20">
-        <div data-spec-box className="mx-auto max-w-6xl" aria-label="Chaos" role="img">
+        <div data-spec-box className="relative mx-auto max-w-6xl" aria-label="Chaos" role="img">
+          {/* Exact React Bits ShapeBlur layer */}
+          <div
+            className={`pointer-events-none absolute -inset-6 sm:-inset-10 md:-inset-14 z-20 transition-opacity duration-500 ease-out ${
+              isHovered ? "opacity-90" : "opacity-0"
+            }`}
+            style={{ mixBlendMode: "screen" }}
+          >
+            <ShapeBlur
+              variation={0}
+              shapeSize={1.15}
+              roundness={0.45}
+              borderSize={0.05}
+              circleSize={0.28}
+              circleEdge={0.8}
+            />
+          </div>
+
           <svg
             viewBox={`0 0 ${totalW} ${totalH}`}
-            className="w-full text-foreground drop-shadow-[0_0_50px_rgba(204,255,0,0.22)]"
+            className="relative z-10 w-full text-foreground drop-shadow-[0_0_50px_rgba(204,255,0,0.22)]"
             preserveAspectRatio="xMidYMid meet"
           >
             {WORD.split("").map((c, i) => (
