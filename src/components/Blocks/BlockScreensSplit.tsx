@@ -5,7 +5,7 @@
  * Licensed under the MIT License. See LICENSE in the project root for license information.
  */
 
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
 import BlurText from "@/components/Motion/BlurText";
 import { Rise } from "@/components/Motion/MaskedLine";
@@ -65,35 +65,88 @@ const CONTRIBUTION_CELLS = Array.from({ length: 84 }).map((_, i) => {
   return { id: i, isHigh, isAccent, activity };
 });
 
-/* ─── Interactive 3D Spring Telemetry Card ───────────────────────────────── */
+/* ─── Interactive Fluid Mesh Telemetry Card ─────────────────────────────── */
 
 function InteractiveTelemetryCard() {
   const cardRef = useRef<HTMLDivElement>(null);
+  const turbRef = useRef<SVGFETurbulenceElement>(null);
+  const dispRef = useRef<SVGFEDisplacementMapElement>(null);
 
   // Normalized cursor coordinates (-0.5 to 0.5)
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
 
-  // Damped spring physics for tactile jelly response
-  const springX = useSpring(mouseX, { stiffness: 240, damping: 22, mass: 0.65 });
-  const springY = useSpring(mouseY, { stiffness: 240, damping: 22, mass: 0.65 });
+  // Soft elastic jelly physics (low damping = organic fluid wobble)
+  const springConfig = { stiffness: 160, damping: 14, mass: 0.75 };
+  const springX = useSpring(mouseX, springConfig);
+  const springY = useSpring(mouseY, springConfig);
 
-  // 3D Tilt angles (subtle & ergonomic ±7 degrees)
-  const rotateX = useTransform(springY, [-0.5, 0.5], [7, -7]);
-  const rotateY = useTransform(springX, [-0.5, 0.5], [-7, 7]);
+  // Fluid 3D tilt
+  const rotateX = useTransform(springY, [-0.5, 0.5], [8.5, -8.5]);
+  const rotateY = useTransform(springX, [-0.5, 0.5], [-8.5, 8.5]);
 
-  // Magnetic spring pull (±6px)
-  const translateX = useTransform(springX, [-0.5, 0.5], [-6, 6]);
-  const translateY = useTransform(springY, [-0.5, 0.5], [-6, 6]);
+  // Organic fluid shear & elastic skew
+  const skewX = useTransform(springX, [-0.5, 0.5], [-2.4, 2.4]);
+  const skewY = useTransform(springY, [-0.5, 0.5], [-2.4, 2.4]);
 
-  // Ambient glare position
+  // Magnetic spring pull
+  const translateX = useTransform(springX, [-0.5, 0.5], [-7, 7]);
+  const translateY = useTransform(springY, [-0.5, 0.5], [-7, 7]);
+
+  // Dynamic ambient specular lighting
   const [glare, setGlare] = useState<{ x: number; y: number; opacity: number }>({
     x: 50,
     y: 50,
     opacity: 0,
   });
+  const [wavePhase, setWavePhase] = useState(0);
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+  // Kinetic energy from cursor velocity
+  const energyRef = useRef(0);
+  const targetEnergyRef = useRef(0);
+  const lastPosRef = useRef({ x: 0, y: 0, time: 0 });
+
+  // Continuous fluid mesh wave loop
+  useEffect(() => {
+    let animId = 0;
+    let phase = 0;
+
+    const loop = () => {
+      // Viscous damping of fluid wave energy
+      energyRef.current += (targetEnergyRef.current - energyRef.current) * 0.08;
+      targetEnergyRef.current *= 0.95;
+
+      const energy = energyRef.current;
+      phase += 0.032 + energy * 0.003;
+
+      // Update fluid wave phase state for matrix cell ripple animation
+      if (Math.round(phase * 8) % 3 === 0) {
+        setWavePhase(phase);
+      }
+
+      // Smoothly shifting frequency (creates breathing, undulating fluid currents)
+      const fx = 0.012 + Math.sin(phase * 0.65) * 0.0035;
+      const fy = 0.016 + Math.cos(phase * 0.85) * 0.004;
+
+      // Ambient liquid breathing ripple + mouse kinetic wave ripple
+      const ambientScale = 3.5 + Math.sin(phase * 1.3) * 1.8;
+      const waveScale = ambientScale + energy * 0.45;
+
+      if (turbRef.current) {
+        turbRef.current.setAttribute("baseFrequency", `${fx.toFixed(5)} ${fy.toFixed(5)}`);
+      }
+      if (dispRef.current) {
+        dispRef.current.setAttribute("scale", waveScale.toFixed(2));
+      }
+
+      animId = requestAnimationFrame(loop);
+    };
+
+    animId = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(animId);
+  }, []);
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     const el = cardRef.current;
     if (!el) return;
     const rect = el.getBoundingClientRect();
@@ -103,9 +156,24 @@ function InteractiveTelemetryCard() {
     mouseX.set(px - 0.5);
     mouseY.set(py - 0.5);
     setGlare({ x: px * 100, y: py * 100, opacity: 1 });
+
+    // Calculate cursor velocity to inject fluid momentum
+    const now = performance.now();
+    const dt = Math.max(now - lastPosRef.current.time, 16);
+    const dx = e.clientX - lastPosRef.current.x;
+    const dy = e.clientY - lastPosRef.current.y;
+    const speed = Math.sqrt(dx * dx + dy * dy) / dt;
+
+    lastPosRef.current = { x: e.clientX, y: e.clientY, time: now };
+    targetEnergyRef.current = Math.min(targetEnergyRef.current + speed * 14, 38);
   };
 
-  const handleMouseLeave = () => {
+  const handlePointerDown = () => {
+    // Inject energetic fluid wave pulse on click / drag
+    targetEnergyRef.current = 34;
+  };
+
+  const handlePointerLeave = () => {
     mouseX.set(0);
     mouseY.set(0);
     setGlare((g) => ({ ...g, opacity: 0 }));
@@ -113,29 +181,69 @@ function InteractiveTelemetryCard() {
 
   return (
     <div style={{ perspective: 1200 }} className="relative w-full">
+      {/* ── Hidden SVG Fluid Mesh Displacement Filter ──────────────────── */}
+      <svg
+        className="pointer-events-none absolute -top-[9999px] -left-[9999px] h-0 w-0 opacity-0 overflow-hidden"
+        aria-hidden="true"
+      >
+        <defs>
+          <filter
+            id="fluid-mesh-filter"
+            x="-20%"
+            y="-20%"
+            width="140%"
+            height="140%"
+            colorInterpolationFilters="sRGB"
+          >
+            <feTurbulence
+              ref={turbRef}
+              type="fractalNoise"
+              baseFrequency="0.014 0.018"
+              numOctaves="2"
+              result="noise"
+              seed="3"
+            />
+            <feDisplacementMap
+              ref={dispRef}
+              in="SourceGraphic"
+              in2="noise"
+              scale="4"
+              xChannelSelector="R"
+              yChannelSelector="G"
+            />
+          </filter>
+        </defs>
+      </svg>
+
+      {/* ── Fluid Mesh Container ────────────────────────────────────────── */}
       <motion.div
         ref={cardRef}
-        onMouseMove={handleMouseMove}
-        onMouseLeave={handleMouseLeave}
+        onPointerMove={handlePointerMove}
+        onPointerDown={handlePointerDown}
+        onPointerLeave={handlePointerLeave}
         style={{
           rotateX,
           rotateY,
+          skewX,
+          skewY,
           x: translateX,
           y: translateY,
           transformStyle: "preserve-3d",
+          filter: "url(#fluid-mesh-filter)",
           ["--cut" as string]: "26px",
         }}
-        whileHover={{ scale: 1.012 }}
-        transition={{ type: "spring", stiffness: 350, damping: 20 }}
+        whileHover={{ scale: 1.014 }}
+        transition={{ type: "spring", stiffness: 260, damping: 16 }}
         data-spec-box
-        className="tag-cut relative border border-border bg-surface/50 p-5 md:p-6 backdrop-blur-sm transition-shadow duration-300 hover:shadow-[0_20px_50px_rgba(0,0,0,0.5),0_0_30px_rgba(204,255,0,0.06)]"
+        className="tag-cut relative border border-border bg-surface/50 p-5 md:p-6 backdrop-blur-sm transition-shadow duration-300 hover:shadow-[0_20px_50px_rgba(0,0,0,0.5),0_0_30px_rgba(204,255,0,0.08)] select-auto"
       >
-        {/* Dynamic ambient highlight glare */}
+        {/* Dynamic fluid specular light sheen */}
         <div
           className="pointer-events-none absolute inset-0 rounded-[inherit] transition-opacity duration-300 z-10"
           style={{
             opacity: glare.opacity,
-            background: `radial-gradient(600px circle at ${glare.x}% ${glare.y}%, rgba(204,255,0,0.07), transparent 60%)`,
+            background: `radial-gradient(500px circle at ${glare.x}% ${glare.y}%, rgba(204,255,0,0.09), transparent 65%),
+                         radial-gradient(700px circle at ${100 - glare.x}% ${100 - glare.y}%, rgba(255,255,255,0.02), transparent 60%)`,
           }}
         />
 
@@ -155,7 +263,7 @@ function InteractiveTelemetryCard() {
           <span className="text-accent text-[0.52rem]">[ LIVING COMMONS ]</span>
         </div>
 
-        {/* Heatmap */}
+        {/* Heatmap Matrix with Fluid Wave Ripple */}
         <div className="mt-5">
           <div className="flex items-center justify-between font-mono text-[0.56rem] tracking-widest text-index uppercase mb-2">
             <span>PEER ACTIVITY MATRIX</span>
@@ -163,21 +271,31 @@ function InteractiveTelemetryCard() {
           </div>
 
           <div className="grid grid-cols-12 gap-1 p-3 border border-border/50 bg-background/50">
-            {CONTRIBUTION_CELLS.map((c) => (
-              <div
-                key={c.id}
-                title={`Cell #${c.id + 1}`}
-                className={`aspect-square transition-all duration-200 cursor-pointer ${
-                  c.isAccent
-                    ? "bg-accent hover:scale-110 shadow-[0_0_6px_rgba(204,255,0,0.45)]"
-                    : c.isHigh
-                    ? "bg-foreground/70 hover:bg-foreground hover:scale-110"
-                    : c.activity > 3
-                    ? "bg-foreground/25 hover:bg-foreground/50"
-                    : "bg-border/30 hover:bg-border/70"
-                }`}
-              />
-            ))}
+            {CONTRIBUTION_CELLS.map((c) => {
+              const col = c.id % 12;
+              const row = Math.floor(c.id / 12);
+              // Fluid wave ripple across grid coordinates
+              const waveVal = Math.sin(wavePhase * 2 - (col * 0.35 + row * 0.55)) * 0.12;
+
+              return (
+                <div
+                  key={c.id}
+                  title={`Cell #${c.id + 1}`}
+                  style={{
+                    transform: `scale(${1 + waveVal * 0.5})`,
+                  }}
+                  className={`aspect-square transition-all duration-200 cursor-pointer ${
+                    c.isAccent
+                      ? "bg-accent hover:scale-125 shadow-[0_0_6px_rgba(204,255,0,0.45)]"
+                      : c.isHigh
+                      ? "bg-foreground/70 hover:bg-foreground hover:scale-125"
+                      : c.activity > 3
+                      ? "bg-foreground/25 hover:bg-foreground/50"
+                      : "bg-border/30 hover:bg-border/70"
+                  }`}
+                />
+              );
+            })}
           </div>
 
           <div className="mt-2 flex items-center justify-between font-mono text-[0.5rem] text-index">
@@ -350,7 +468,7 @@ export function BlockScreensSplit() {
           </Rise>
         </div>
 
-        {/* Right ── Contribution Telemetry Panel (Exact Original UI with 3D Spring Tilt) */}
+        {/* Right ── Contribution Telemetry Panel (Exact Original UI with 3D Fluid Mesh Animation) */}
         <Rise delay={0.15} className="md:col-span-6 md:col-start-7">
           <InteractiveTelemetryCard />
         </Rise>
