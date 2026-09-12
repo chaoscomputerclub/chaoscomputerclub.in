@@ -533,11 +533,47 @@ async def get_full_profile(
     No client trust: everything is calculated on-the-fly from PostgreSQL tables.
     """
     if not current_member:
-        # If not authenticated, load the university flagship profile
         res = await db.execute(select(MemberProfile).order_by(MemberProfile.rating.desc()).limit(1))
         current_member = res.scalars().first()
-        if not current_member:
-            raise HTTPException(status_code=404, detail="No member records found in database.")
+
+    if not current_member:
+        return {
+            "member": {
+                "id": "unregistered",
+                "handle": "guest",
+                "full_name": "Guest Member",
+                "email": "guest@medicaps.ac.in",
+                "prn": "N/A",
+                "department": "CSE",
+                "batch": "2024-28",
+                "rating": 1200,
+                "peak_rating": 1200,
+                "peak_contest": "No Contests",
+                "university_rank": 0,
+                "active_members": 0,
+                "attendance_count": 0,
+                "attendance_total": 0,
+                "tier": "1★ Explorer",
+                "is_core_member": False,
+                "podiums": 0,
+                "streak": 0,
+            },
+            "ratingHistory": [],
+            "recentBattles": [],
+            "campusPass": {
+                "pass_code": "NONE",
+                "member_name": "Guest",
+                "handle": "guest",
+                "prn_hash": "PRN-0000",
+                "contest_title": "No Active Pass",
+                "seat": "Unassigned",
+                "venue": "N/A",
+                "check_in_opens_at": now_utc().isoformat(),
+                "status": "expired",
+            },
+            "proofs": [],
+            "achievements": [],
+        }
 
     # 1. Rank & Active Counts
     rank_res = await db.execute(
@@ -580,16 +616,7 @@ async def get_full_profile(
         for h in histories
     ]
     if not rating_history:
-        rating_history = [
-            {
-                "contest": "Induction Sprint",
-                "date": "Aug 2026",
-                "rank": university_rank,
-                "old_rating": 1200,
-                "new_rating": current_member.rating,
-                "delta": current_member.rating - 1200,
-            }
-        ]
+        rating_history = []
 
     # 5. Recent Battles
     sb_res = await db.execute(

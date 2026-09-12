@@ -11,7 +11,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.core.db import AsyncSessionLocal, init_db
 from app.routers import assessment, auth, contests, feed, leaderboard, passes, scoreboards, verify
-from app.services.seed_service import seed_database
 
 
 @asynccontextmanager
@@ -19,8 +18,8 @@ async def lifespan(app: FastAPI):
     """Application lifespan: initialize database tables and seed realistic data on start."""
     print(f"⚡ Starting {settings.PROJECT_NAME} (v{settings.VERSION})...")
     await init_db()
-    async with AsyncSessionLocal() as session:
-        await seed_database(session)
+    # Completely blank database policy: zero dummy data seeded
+    pass
     print("✓ Database verified & initialized successfully.")
     yield
     print(f"🛑 Shutting down {settings.PROJECT_NAME}...")

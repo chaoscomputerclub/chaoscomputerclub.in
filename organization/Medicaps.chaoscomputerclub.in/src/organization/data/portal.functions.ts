@@ -38,12 +38,16 @@ function getBackendUrl(): string {
 export const getPublicPortalData = createServerFn({ method: "GET" }).handler(async () => {
   const backendUrl = getBackendUrl();
 
-  const [apiContests, standings, apiAnnouncements, apiProofs] = await Promise.all([
+  const [apiContests, apiAnnouncements, apiProofs] = await Promise.all([
     fetch(`${backendUrl}/contests`).then((r) => (r.ok ? r.json() : [])).catch(() => []),
-    fetch(`${backendUrl}/scoreboards/chaos-arena-2026`).then((r) => (r.ok ? r.json() : [])).catch(() => []),
     fetch(`${backendUrl}/feed/announcements`).then((r) => (r.ok ? r.json() : [])).catch(() => []),
     fetch(`${backendUrl}/verify/proofs`).then((r) => (r.ok ? r.json() : [])).catch(() => []),
   ]);
+
+  const firstSlug = apiContests && apiContests.length > 0 ? apiContests[0].slug : null;
+  const standings = firstSlug
+    ? await fetch(`${backendUrl}/scoreboards/${firstSlug}`).then((r) => (r.ok ? r.json() : [])).catch(() => [])
+    : [];
 
   const problems: any[] = (apiContests || []).flatMap((c: any) =>
     (c.problems || []).map((p: any) => ({
@@ -102,9 +106,9 @@ export const getMemberProfileData = createServerFn({ method: "GET" }).handler(as
       batch: "2023-27" as const,
       rating: 1200,
       peak_rating: 1200,
-      peak_contest: "Chaos Arena: Season 02",
-      university_rank: 1,
-      active_members: 1,
+      peak_contest: "No Contests",
+      university_rank: 0,
+      active_members: 0,
       attendance_count: 0,
       attendance_total: 10,
       tier: "1★ Explorer" as const,

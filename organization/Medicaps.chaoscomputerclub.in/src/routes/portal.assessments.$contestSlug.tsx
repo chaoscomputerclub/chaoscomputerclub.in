@@ -202,13 +202,7 @@ function AssessmentStudio() {
                 Sign In to Start Assessment
               </Button>
             </a>
-          ) : (
-            <Link to="/portal/assessments/$contestSlug" params={{ contestSlug: "chaos-arena-2026" }}>
-              <Button className="bg-accent text-accent-foreground font-mono text-xs hover:bg-accent/90">
-                Open Chaos Arena '26 Screening
-              </Button>
-            </Link>
-          )}
+          ) : null}
           <Link to="/portal/contests">
             <Button variant="outline" className="font-mono text-xs border-[#333] hover:bg-[#181818]">
               Return to Contests
