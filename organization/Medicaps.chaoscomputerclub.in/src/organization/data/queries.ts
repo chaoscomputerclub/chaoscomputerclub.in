@@ -3,16 +3,16 @@ import { achievements, announcements, campusPass, contests, leaderboard, member,
 import { getPublicPortalData } from "./portal.functions";
 import type { AnnouncementFeedItem, ContestProblem, OfflineContest, ProblemTelemetry, ScoreboardEntry, TrustProof } from "./types";
 
-const asyncValue=<T,>(value:T)=>async()=>value;
+const asyncValue = <T,>(value: T) => async () => value;
 
 async function publicRecords() {
   try {
     const data = await getPublicPortalData();
-    const mappedContests: OfflineContest[] = data.contests.map((record) => {
+    const mappedContests: OfflineContest[] = data.contests.map((record: any) => {
       const fallback = contests.find((contest) => contest.slug === record.slug);
       const contestProblems: ContestProblem[] = data.problems
-        .filter((problem) => problem.contest_id === record.id)
-        .map((problem) => ({
+        .filter((problem: any) => problem.contest_id === record.id)
+        .map((problem: any) => ({
           index: problem.problem_index,
           title: problem.title,
           topic: problem.topic,
@@ -22,8 +22,8 @@ async function publicRecords() {
           editorial: problem.editorial_summary ?? "Editorial pending sealed review.",
         }));
       const contestStandings: ScoreboardEntry[] = data.standings
-        .filter((entry) => entry.contest_id === record.id)
-        .map((entry) => ({
+        .filter((entry: any) => entry.contest_id === record.id)
+        .map((entry: any) => ({
           rank: entry.rank,
           handle: entry.handle,
           full_name: entry.full_name,
@@ -65,8 +65,8 @@ async function publicRecords() {
     return {
       contests: mappedContests.length ? mappedContests : contests,
       announcements: (data.announcements.length ? data.announcements : announcements) as AnnouncementFeedItem[],
-      proofs: (data.proofs.length ? data.proofs.map((proof) => {
-        const contest = data.contests.find((item) => item.id === proof.contest_id);
+      proofs: (data.proofs.length ? data.proofs.map((proof: any) => {
+        const contest = data.contests.find((item: any) => item.id === proof.contest_id);
         return { ...proof, contest_slug: contest?.slug ?? "", status: proof.status as TrustProof["status"] };
       }) : proofs) as TrustProof[],
     };
@@ -75,5 +75,17 @@ async function publicRecords() {
   }
 }
 
-const publicQuery=queryOptions({queryKey:["portal","public-records"],queryFn:publicRecords});
-export const portalQueries={member:()=>queryOptions({queryKey:["portal","member"],queryFn:asyncValue(member)}),contests:()=>queryOptions({queryKey:["portal","contests"],queryFn:async()=> (await publicRecords()).contests}),contest:(slug:string)=>queryOptions({queryKey:["portal","contest",slug],queryFn:async()=> (await publicRecords()).contests.find(c=>c.slug===slug)??null}),leaderboard:()=>queryOptions({queryKey:["portal","leaderboard"],queryFn:asyncValue(leaderboard)}),announcements:()=>queryOptions({queryKey:["portal","announcements"],queryFn:async()=> (await publicRecords()).announcements}),proofs:()=>queryOptions({queryKey:["portal","proofs"],queryFn:async()=> (await publicRecords()).proofs}),publicRecords:()=>publicQuery,ratingHistory:()=>queryOptions({queryKey:["portal","rating-history"],queryFn:asyncValue(ratingHistory)}),recentBattles:()=>queryOptions({queryKey:["portal","recent-battles"],queryFn:asyncValue(recentBattles)}),campusPass:()=>queryOptions({queryKey:["portal","campus-pass"],queryFn:asyncValue(campusPass)}),achievements:()=>queryOptions({queryKey:["portal","achievements"],queryFn:asyncValue(achievements)})};
+const publicQuery = queryOptions({ queryKey: ["portal", "public-records"], queryFn: publicRecords });
+export const portalQueries = {
+  member: () => queryOptions({ queryKey: ["portal", "member"], queryFn: asyncValue(member) }),
+  contests: () => queryOptions({ queryKey: ["portal", "contests"], queryFn: async () => (await publicRecords()).contests }),
+  contest: (slug: string) => queryOptions({ queryKey: ["portal", "contest", slug], queryFn: async () => (await publicRecords()).contests.find((c) => c.slug === slug) ?? null }),
+  leaderboard: () => queryOptions({ queryKey: ["portal", "leaderboard"], queryFn: asyncValue(leaderboard) }),
+  announcements: () => queryOptions({ queryKey: ["portal", "announcements"], queryFn: async () => (await publicRecords()).announcements }),
+  proofs: () => queryOptions({ queryKey: ["portal", "proofs"], queryFn: async () => (await publicRecords()).proofs }),
+  publicRecords: () => publicQuery,
+  ratingHistory: () => queryOptions({ queryKey: ["portal", "rating-history"], queryFn: asyncValue(ratingHistory) }),
+  recentBattles: () => queryOptions({ queryKey: ["portal", "recent-battles"], queryFn: asyncValue(recentBattles) }),
+  campusPass: () => queryOptions({ queryKey: ["portal", "campus-pass"], queryFn: asyncValue(campusPass) }),
+  achievements: () => queryOptions({ queryKey: ["portal", "achievements"], queryFn: asyncValue(achievements) }),
+};

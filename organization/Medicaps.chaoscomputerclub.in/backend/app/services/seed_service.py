@@ -120,6 +120,7 @@ async def seed_database(db: AsyncSession):
             attendance_total=m["attendance_total"],
             is_core_member=m["is_core_member"],
             hashed_password=get_password_hash("password123"),
+            is_onboarded=True,
             created_at=now - timedelta(days=90),
         )
         db.add(profile)
