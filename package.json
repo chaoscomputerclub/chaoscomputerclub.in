@@ -1,6 +1,7 @@
 {
   "name": "chaoscomputerclub",
   "private": true,
+  "license": "MIT",
   "type": "module",
   "workspaces": [
     "root",
