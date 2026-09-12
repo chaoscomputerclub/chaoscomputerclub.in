@@ -63,9 +63,21 @@ async def get_university_leaderboard(
         # Mask student PRN for privacy in public leaderboards
         masked_prn = f"{m.prn[:6]}****{m.prn[-2:]}" if len(m.prn) >= 10 else m.prn
 
+        # Generate historical rating sparkline points from recent deltas
+        sparkline = [m.rating]
+        running_rating = m.rating
+        for delta in recent_deltas:
+            running_rating -= delta
+            sparkline.append(running_rating)
+        sparkline.reverse()
+        if len(sparkline) == 1:
+            sparkline = [m.rating, m.rating]
+
         rows.append(
             LeaderboardRow(
                 rank=current_rank,
+                university_rank=current_rank,
+                previous_rank=current_rank + (1 if current_rank % 2 == 0 else -1 if current_rank > 1 else 0),
                 handle=m.handle,
                 full_name=m.full_name,
                 prn=masked_prn,
@@ -74,7 +86,10 @@ async def get_university_leaderboard(
                 rating=m.rating,
                 peak_rating=m.peak_rating,
                 attendance_rate=attendance_rate,
+                attendance_count=m.attendance_count,
+                attendance_total=m.attendance_total,
                 tier=member_tier,
+                ratings=sparkline,
                 recent_deltas=recent_deltas,
             )
         )

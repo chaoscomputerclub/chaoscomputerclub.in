@@ -139,6 +139,8 @@ class RatingHistoryResponse(BaseModel):
 
 class LeaderboardRow(BaseModel):
     rank: int
+    university_rank: int = 1
+    previous_rank: int = 1
     handle: str
     full_name: str
     prn: str
@@ -147,7 +149,10 @@ class LeaderboardRow(BaseModel):
     rating: int
     peak_rating: int
     attendance_rate: float
+    attendance_count: int = 0
+    attendance_total: int = 0
     tier: str  # 5_star, 4_star, 3_star, 2_star, 1_star
+    ratings: List[int] = []
     recent_deltas: List[int] = []
 
 
