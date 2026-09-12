@@ -5,142 +5,12 @@
  * Licensed under the MIT License. See LICENSE in the project root for license information.
  */
 
-import { useRef, useEffect, useCallback } from "react";
+import { useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import BlurText from "@/components/Motion/BlurText";
 import { Rise } from "@/components/Motion/MaskedLine";
 
 const EASE = [0.16, 1, 0.3, 1] as const;
-
-/* ─── Elastic Mesh ─────────────────────────────────────────────────────── */
-
-const MESH_COLS = 14;
-const MESH_ROWS = 9;
-const STIFFNESS = 0.038;
-const DAMPING = 0.82;
-const DRAG_PULL = 0.55;
-const HOVER_PULL = 0.22;
-const MOUSE_RADIUS = 110;
-
-type MeshPt = { x: number; y: number; ox: number; oy: number; vx: number; vy: number };
-
-function useElasticMesh(
-  canvasRef: React.RefObject<HTMLCanvasElement | null>,
-  mouseRef: React.MutableRefObject<{ x: number; y: number; dragging: boolean }>
-) {
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    let raf = 0;
-    let pts: MeshPt[] = [];
-
-    // Use getBoundingClientRect for accurate CSS-computed dimensions.
-    // Call after a rAF so the browser has done its first layout pass.
-    const init = () => {
-      const rect = canvas.getBoundingClientRect();
-      const w = rect.width;
-      const h = rect.height;
-      if (w < 1 || h < 1) return; // layout not ready yet, ResizeObserver will retry
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      canvas.width = Math.floor(w * dpr);
-      canvas.height = Math.floor(h * dpr);
-      pts = [];
-      for (let r = 0; r <= MESH_ROWS; r++) {
-        for (let c = 0; c <= MESH_COLS; c++) {
-          const x = (c / MESH_COLS) * canvas.width;
-          const y = (r / MESH_ROWS) * canvas.height;
-          pts.push({ x, y, ox: x, oy: y, vx: 0, vy: 0 });
-        }
-      }
-    };
-
-    const tick = () => {
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      if (pts.length === 0) {
-        // Init not ready — keep ticking and retry
-        raf = requestAnimationFrame(tick);
-        return;
-      }
-
-      const m = mouseRef.current;
-      const mx = m.x * dpr;
-      const my = m.y * dpr;
-      const r = MOUSE_RADIUS * dpr;
-      const pull = m.dragging ? DRAG_PULL : HOVER_PULL;
-
-      for (const p of pts) {
-        // Spring toward origin
-        p.vx += (p.ox - p.x) * STIFFNESS;
-        p.vy += (p.oy - p.y) * STIFFNESS;
-
-        // Mouse influence
-        const dmx = mx - p.x;
-        const dmy = my - p.y;
-        const dist = Math.sqrt(dmx * dmx + dmy * dmy);
-        if (dist < r && dist > 0) {
-          const force = ((r - dist) / r) * pull;
-          p.vx += (dmx / dist) * force * 5.5;
-          p.vy += (dmy / dist) * force * 5.5;
-        }
-
-        p.vx *= DAMPING;
-        p.vy *= DAMPING;
-        p.x += p.vx;
-        p.y += p.vy;
-      }
-
-      const cols = MESH_COLS + 1;
-
-      // Horizontal lines — visible off-white
-      ctx.lineWidth = 1;
-      for (let r2 = 0; r2 <= MESH_ROWS; r2++) {
-        ctx.beginPath();
-        for (let c = 0; c <= MESH_COLS; c++) {
-          const p = pts[r2 * cols + c];
-          if (c === 0) ctx.moveTo(p.x, p.y);
-          else ctx.lineTo(p.x, p.y);
-        }
-        ctx.strokeStyle = "rgba(234,234,234,0.20)";
-        ctx.stroke();
-      }
-
-      // Vertical lines — subtle acid-lime tint
-      ctx.lineWidth = 0.8;
-      for (let c = 0; c <= MESH_COLS; c++) {
-        ctx.beginPath();
-        for (let r2 = 0; r2 <= MESH_ROWS; r2++) {
-          const p = pts[r2 * cols + c];
-          if (r2 === 0) ctx.moveTo(p.x, p.y);
-          else ctx.lineTo(p.x, p.y);
-        }
-        ctx.strokeStyle = "rgba(204,255,0,0.10)";
-        ctx.stroke();
-      }
-
-      raf = requestAnimationFrame(tick);
-    };
-
-    // Delay initial init until after browser layout pass
-    raf = requestAnimationFrame(() => {
-      init();
-      tick();
-    });
-
-    const ro = new ResizeObserver(() => init());
-    ro.observe(canvas);
-
-    return () => {
-      cancelAnimationFrame(raf);
-      ro.disconnect();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-}
 
 /* ─── Data ──────────────────────────────────────────────────────────────── */
 
@@ -195,29 +65,347 @@ const CONTRIBUTION_CELLS = Array.from({ length: 84 }).map((_, i) => {
   return { id: i, isHigh, isAccent, activity };
 });
 
+/* ─── Elastic Telemetry Canvas ──────────────────────────────────────────── */
+
+const MESH_COLS = 12;
+const MESH_ROWS = 8;
+const SPRING_K  = 0.028;
+const DAMPING   = 0.86;
+const PULL_DRAG = 0.48;
+const PULL_HOVER = 0.14;
+const R_FACTOR  = 0.18; // fraction of min(w,h)
+
+type MPt = { x: number; y: number; ox: number; oy: number; vx: number; vy: number };
+
+/** Full-canvas elastic mesh that renders ALL content + the spring grid together. */
+function ElasticTelemetryCanvas() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  // Store mutable state in a ref to avoid triggering re-renders
+  const S = useRef({
+    pts: [] as MPt[],
+    dpr: 1,
+    mouse: { x: -9999, y: -9999, dragging: false },
+  });
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    const s = S.current;
+
+    /* Bilinear mesh displacement at normalised (nx, ny) ∈ [0,1] */
+    const disp = (nx: number, ny: number): [number, number] => {
+      if (!s.pts.length) return [0, 0];
+      const gx = Math.max(0, Math.min(nx * MESH_COLS, MESH_COLS));
+      const gy = Math.max(0, Math.min(ny * MESH_ROWS, MESH_ROWS));
+      const c0 = Math.min(Math.floor(gx), MESH_COLS - 1);
+      const c1 = Math.min(c0 + 1, MESH_COLS);
+      const r0 = Math.min(Math.floor(gy), MESH_ROWS - 1);
+      const r1 = Math.min(r0 + 1, MESH_ROWS);
+      const tx = gx - c0, ty = gy - r0;
+      const W = MESH_COLS + 1;
+      const p00 = s.pts[r0*W+c0], p10 = s.pts[r0*W+c1];
+      const p01 = s.pts[r1*W+c0], p11 = s.pts[r1*W+c1];
+      const bi = (a: number, b: number, c: number, d: number) =>
+        (a*(1-tx) + b*tx)*(1-ty) + (c*(1-tx) + d*tx)*ty;
+      return [
+        bi(p00.x-p00.ox, p10.x-p10.ox, p01.x-p01.ox, p11.x-p11.ox),
+        bi(p00.y-p00.oy, p10.y-p10.oy, p01.y-p01.oy, p11.y-p11.oy),
+      ];
+    };
+
+    /** Warp a CSS-pixel point through the current mesh displacement */
+    const w = (px: number, py: number, cw: number, ch: number): [number, number] => {
+      const [dx, dy] = disp(px/cw, py/ch);
+      return [px+dx, py+dy];
+    };
+
+    const init = () => {
+      const rect = canvas.getBoundingClientRect();
+      const cw = rect.width, ch = rect.height;
+      if (cw < 1 || ch < 1) return;
+      const dpr = Math.min(window.devicePixelRatio||1, 2);
+      canvas.width  = Math.floor(cw * dpr);
+      canvas.height = Math.floor(ch * dpr);
+      s.dpr = dpr;
+      s.pts = [];
+      for (let r = 0; r <= MESH_ROWS; r++) {
+        for (let c = 0; c <= MESH_COLS; c++) {
+          const ox = (c/MESH_COLS)*cw, oy = (r/MESH_ROWS)*ch;
+          s.pts.push({ x: ox, y: oy, ox, oy, vx: 0, vy: 0 });
+        }
+      }
+    };
+
+    const draw = (cw: number, ch: number) => {
+      ctx.setTransform(s.dpr, 0, 0, s.dpr, 0, 0);
+      ctx.clearRect(0, 0, cw, ch);
+
+      // Dark background
+      ctx.fillStyle = "#0d0d0d";
+      ctx.fillRect(0, 0, cw, ch);
+
+      if (!s.pts.length) return;
+
+      const pad  = cw * 0.065;
+      const padT = ch * 0.06;
+
+      /* ─ HEADER ───────────────────────────────────────────────────── */
+      ctx.textAlign = "left";
+
+      const [dotX, dotY] = w(pad, padT + 14, cw, ch);
+      ctx.font = "700 9px 'IBM Plex Mono', monospace";
+      ctx.fillStyle = "#ccff00";
+      ctx.fillText("■", dotX, dotY);
+
+      const [hdX, hdY] = w(pad + 14, padT + 14, cw, ch);
+      ctx.fillStyle = "#eaeaea";
+      ctx.fillText("CONTRIBUTION TELEMETRY", hdX, hdY);
+
+      const [lcX, lcY] = w(cw - pad - 92, padT + 14, cw, ch);
+      ctx.font = "500 7.5px 'IBM Plex Mono', monospace";
+      ctx.fillStyle = "#ccff00";
+      ctx.fillText("[ LIVING COMMONS ]", lcX, lcY);
+
+      // Stats row
+      const [sX, sY] = w(pad, padT + 29, cw, ch);
+      ctx.font = "400 7.5px 'IBM Plex Mono', monospace";
+      ctx.fillStyle = "rgba(234,234,234,0.36)";
+      ctx.fillText("247 COMMITS  ·  14 CONTRIBUTORS  ·  ∞ STREAK", sX, sY);
+
+      // Divider
+      const [d0x, d0y] = w(pad, padT + 38, cw, ch);
+      const [d1x, d1y] = w(cw-pad, padT + 38, cw, ch);
+      ctx.beginPath(); ctx.moveTo(d0x, d0y); ctx.lineTo(d1x, d1y);
+      ctx.strokeStyle = "rgba(234,234,234,0.10)"; ctx.lineWidth = 0.5; ctx.stroke();
+
+      /* ─ HEATMAP ──────────────────────────────────────────────────── */
+      const hmY = padT + 52;
+      const [hmLx, hmLy] = w(pad, hmY, cw, ch);
+      ctx.font = "500 7px 'IBM Plex Mono', monospace";
+      ctx.fillStyle = "rgba(234,234,234,0.26)";
+      ctx.fillText("PEER ACTIVITY MATRIX", hmLx, hmLy);
+
+      const [hmRx, hmRy] = w(cw - pad - 86, hmY, cw, ch);
+      ctx.fillText("7 × 12 COMMIT GRAPH", hmRx, hmRy);
+
+      const hmLeft = pad, hmTop = hmY + 9;
+      const hmW = cw - pad*2, hmH = ch * 0.295;
+      const HCOLS = 12, HROWS = 7;
+      const cellW = hmW/HCOLS, cellH = hmH/HROWS;
+
+      CONTRIBUTION_CELLS.forEach((cell, i) => {
+        const col = i % HCOLS, row = Math.floor(i / HCOLS);
+        const x0 = hmLeft + col*cellW + 1.5;
+        const y0 = hmTop  + row*cellH + 1.5;
+        const x1 = x0 + cellW - 3;
+        const y1 = y0 + cellH - 3;
+
+        const [tlx,tly] = w(x0, y0, cw, ch);
+        const [trx,try_] = w(x1, y0, cw, ch);
+        const [brx,bry] = w(x1, y1, cw, ch);
+        const [blx,bly] = w(x0, y1, cw, ch);
+
+        if (cell.isAccent)        ctx.fillStyle = "#ccff00";
+        else if (cell.isHigh)     ctx.fillStyle = "rgba(234,234,234,0.60)";
+        else if (cell.activity>3) ctx.fillStyle = "rgba(234,234,234,0.18)";
+        else                      ctx.fillStyle = "rgba(234,234,234,0.06)";
+
+        ctx.beginPath();
+        ctx.moveTo(tlx,tly); ctx.lineTo(trx,try_);
+        ctx.lineTo(brx,bry); ctx.lineTo(blx,bly);
+        ctx.closePath(); ctx.fill();
+      });
+
+      // Legend
+      const legY = hmTop + hmH + 9;
+      const [legLx, legLy] = w(pad, legY, cw, ch);
+      ctx.font = "400 6.5px 'IBM Plex Mono', monospace";
+      ctx.fillStyle = "rgba(234,234,234,0.22)";
+      ctx.fillText("LESS", legLx, legLy);
+      ["rgba(234,234,234,0.06)","rgba(234,234,234,0.18)","rgba(234,234,234,0.60)","#ccff00"].forEach((c2,i) => {
+        const [sx2,sy2] = w(pad + 32 + i*9, legY - 5, cw, ch);
+        ctx.fillStyle = c2; ctx.fillRect(sx2, sy2, 7, 7);
+      });
+      const [legRx, legRy] = w(pad + 32 + 4*9 + 6, legY, cw, ch);
+      ctx.fillStyle = "rgba(234,234,234,0.22)"; ctx.fillText("MORE", legRx, legRy);
+
+      /* ─ PROTOCOL LIST ────────────────────────────────────────────── */
+      const protoTop = hmTop + hmH + 27;
+      const [pLx,pLy] = w(pad, protoTop, cw, ch);
+      ctx.font = "500 7px 'IBM Plex Mono', monospace";
+      ctx.fillStyle = "rgba(234,234,234,0.26)";
+      ctx.fillText("COMMONS PROTOCOL", pLx, pLy);
+
+      const steps = [
+        { step:"01", label:"LEARN",      desc:"Study source code like classical literature." },
+        { step:"02", label:"BUILD",      desc:"Ship under real clock pressure." },
+        { step:"03", label:"CONTRIBUTE", desc:"Fix the bug. Submit the patch upstream." },
+        { step:"04", label:"SHARE",      desc:"Leave the door unlocked for whoever comes next." },
+      ];
+      const avail  = ch - protoTop - 30;
+      const rowGap = avail / (steps.length + 0.5);
+
+      steps.forEach((step, i) => {
+        const ry = protoTop + (i+1)*rowGap - 6;
+        // row separator
+        const [sp0x,sp0y] = w(pad, ry - rowGap + 10, cw, ch);
+        const [sp1x,sp1y] = w(cw-pad, ry - rowGap + 10, cw, ch);
+        ctx.beginPath(); ctx.moveTo(sp0x,sp0y); ctx.lineTo(sp1x,sp1y);
+        ctx.strokeStyle = "rgba(234,234,234,0.07)"; ctx.lineWidth = 0.5; ctx.stroke();
+
+        const [stX,stY] = w(pad, ry, cw, ch);
+        ctx.font = "700 8px 'IBM Plex Mono', monospace";
+        ctx.fillStyle = "#ccff00";
+        ctx.fillText(step.step, stX, stY);
+
+        const [laX,laY] = w(pad + cw*0.09, ry, cw, ch);
+        ctx.fillStyle = "#eaeaea";
+        ctx.fillText(step.label, laX, laY);
+
+        const [deX,deY] = w(pad + cw*0.24, ry, cw, ch);
+        ctx.font = "400 7.5px 'IBM Plex Mono', monospace";
+        ctx.fillStyle = "rgba(234,234,234,0.38)";
+        ctx.fillText(step.desc, deX, deY);
+      });
+
+      /* ─ FOOTER ───────────────────────────────────────────────────── */
+      const [ftX,ftY] = w(pad, ch - 14, cw, ch);
+      ctx.font = "400 7px 'IBM Plex Mono', monospace";
+      ctx.fillStyle = "rgba(234,234,234,0.15)";
+      ctx.fillText("DRAG TO DISTORT  ·  ALL ARTIFACTS OPEN BY DEFAULT", ftX, ftY);
+      const [ghX,ghY] = w(cw - pad - 68, ch - 14, cw, ch);
+      ctx.fillStyle = "rgba(234,234,234,0.30)";
+      ctx.fillText("[ GITHUB → ]", ghX, ghY);
+
+      /* ─ ELASTIC MESH GRID ────────────────────────────────────────── */
+      const W = MESH_COLS + 1;
+      ctx.lineWidth = 0.9;
+
+      for (let r2 = 0; r2 <= MESH_ROWS; r2++) {
+        ctx.beginPath();
+        for (let c = 0; c <= MESH_COLS; c++) {
+          const p = s.pts[r2*W+c];
+          c === 0 ? ctx.moveTo(p.x,p.y) : ctx.lineTo(p.x,p.y);
+        }
+        ctx.strokeStyle = "rgba(234,234,234,0.14)"; ctx.stroke();
+      }
+      ctx.lineWidth = 0.7;
+      for (let c = 0; c <= MESH_COLS; c++) {
+        ctx.beginPath();
+        for (let r2 = 0; r2 <= MESH_ROWS; r2++) {
+          const p = s.pts[r2*W+c];
+          r2 === 0 ? ctx.moveTo(p.x,p.y) : ctx.lineTo(p.x,p.y);
+        }
+        ctx.strokeStyle = "rgba(204,255,0,0.08)"; ctx.stroke();
+      }
+      // Vertex dots
+      for (const p of s.pts) {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 1, 0, Math.PI*2);
+        ctx.fillStyle = "rgba(234,234,234,0.20)"; ctx.fill();
+      }
+
+      /* ─ CORNER CHIP (acid-lime, drawn on top of everything) ──────── */
+      ctx.fillStyle = "#ccff00";
+      ctx.fillRect(0, 0, 88, 18);
+      ctx.font = "700 7.5px 'IBM Plex Mono', monospace";
+      ctx.fillStyle = "#080808";
+      ctx.textAlign = "left";
+      ctx.fillText("CHOS // COMMONS", 5, 12);
+
+      /* ─ OUTER BORDER ─────────────────────────────────────────────── */
+      ctx.strokeStyle = "rgba(234,234,234,0.12)";
+      ctx.lineWidth = 1;
+      ctx.strokeRect(0.5, 0.5, cw-1, ch-1);
+    };
+
+    let raf = 0;
+
+    const tick = () => {
+      const rect = canvas.getBoundingClientRect();
+      const cw = rect.width, ch = rect.height;
+
+      if (s.pts.length) {
+        const m = s.mouse;
+        const radius = R_FACTOR * Math.min(cw, ch);
+        const pull = m.dragging ? PULL_DRAG : PULL_HOVER;
+
+        for (const p of s.pts) {
+          p.vx += (p.ox - p.x) * SPRING_K;
+          p.vy += (p.oy - p.y) * SPRING_K;
+
+          const dmx = m.x - p.x, dmy = m.y - p.y;
+          const dist = Math.sqrt(dmx*dmx + dmy*dmy);
+          if (dist < radius && dist > 0) {
+            const force = ((radius-dist)/radius) * pull;
+            p.vx += (dmx/dist) * force * 5;
+            p.vy += (dmy/dist) * force * 5;
+          }
+
+          p.vx *= DAMPING; p.vy *= DAMPING;
+          p.x += p.vx;    p.y += p.vy;
+        }
+
+        if (cw > 0 && ch > 0) draw(cw, ch);
+      }
+
+      raf = requestAnimationFrame(tick);
+    };
+
+    raf = requestAnimationFrame(() => { init(); tick(); });
+
+    const ro = new ResizeObserver(() => init());
+    ro.observe(canvas);
+
+    const onMove = (e: MouseEvent | TouchEvent) => {
+      const rect = canvas.getBoundingClientRect();
+      const cx = "touches" in e ? (e as TouchEvent).touches[0].clientX : (e as MouseEvent).clientX;
+      const cy = "touches" in e ? (e as TouchEvent).touches[0].clientY : (e as MouseEvent).clientY;
+      s.mouse.x = cx - rect.left;
+      s.mouse.y = cy - rect.top;
+    };
+    const onDown = () => { s.mouse.dragging = true; };
+    const onUp   = () => { s.mouse.dragging = false; };
+    const onOut  = () => { s.mouse.x = -9999; s.mouse.y = -9999; s.mouse.dragging = false; };
+
+    canvas.addEventListener("mousemove",  onMove);
+    canvas.addEventListener("touchmove",  onMove, { passive: true });
+    canvas.addEventListener("mousedown",  onDown);
+    canvas.addEventListener("touchstart", onDown, { passive: true });
+    window.addEventListener("mouseup",    onUp);
+    window.addEventListener("touchend",   onUp);
+    canvas.addEventListener("mouseleave", onOut);
+
+    return () => {
+      cancelAnimationFrame(raf);
+      ro.disconnect();
+      canvas.removeEventListener("mousemove",  onMove);
+      canvas.removeEventListener("touchmove",  onMove);
+      canvas.removeEventListener("mousedown",  onDown);
+      canvas.removeEventListener("touchstart", onDown);
+      window.removeEventListener("mouseup",    onUp);
+      window.removeEventListener("touchend",   onUp);
+      canvas.removeEventListener("mouseleave", onOut);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      className="block w-full cursor-crosshair select-none"
+      style={{ aspectRatio: "4/3.5" }}
+      aria-label="Contribution Telemetry — elastic mesh panel"
+    />
+  );
+}
+
 /* ─── Component ─────────────────────────────────────────────────────────── */
 
 /** Block 04 — Open Source: Built to be shared. */
 export function BlockScreensSplit() {
-  const meshCanvasRef = useRef<HTMLCanvasElement>(null);
-  const meshMouseRef = useRef({ x: -9999, y: -9999, dragging: false });
-
-  useElasticMesh(meshCanvasRef, meshMouseRef);
-
-  const onMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    meshMouseRef.current.x = e.clientX - rect.left;
-    meshMouseRef.current.y = e.clientY - rect.top;
-  }, []);
-
-  const onDown = useCallback(() => { meshMouseRef.current.dragging = true; }, []);
-  const onUp = useCallback(() => { meshMouseRef.current.dragging = false; }, []);
-  const onLeave = useCallback(() => {
-    meshMouseRef.current.x = -9999;
-    meshMouseRef.current.y = -9999;
-    meshMouseRef.current.dragging = false;
-  }, []);
-
   return (
     <section
       id="opensource"
@@ -257,7 +445,7 @@ export function BlockScreensSplit() {
             </p>
           </Rise>
 
-          {/* Axiom spec list — mirrors BlockVerticalSpec pattern */}
+          {/* Axiom spec list */}
           <ul className="mt-8 border-t border-border">
             {AXIOMS.map((a, i) => (
               <motion.li
@@ -300,7 +488,6 @@ export function BlockScreensSplit() {
                 We learn from what others built, contribute what we discover, and
                 leave something better for whoever comes next. That&apos;s the cycle.
               </p>
-              {/* Cycle pill breadcrumbs */}
               <div className="mt-4 flex flex-wrap items-center gap-1.5 font-mono text-[0.65rem]">
                 {(["Learn", "Build", "Contribute", "Share"] as const).map((s, i, arr) => (
                   <span key={s} className="contents">
@@ -323,142 +510,9 @@ export function BlockScreensSplit() {
           </Rise>
         </div>
 
-        {/* Right ── Contribution Telemetry Panel with elastic mesh background */}
+        {/* Right ── Full Elastic Mesh Canvas Panel */}
         <Rise delay={0.15} className="md:col-span-6 md:col-start-7">
-          <div
-            data-spec-box
-            className="tag-cut relative border border-border bg-surface/50 backdrop-blur-sm cursor-crosshair select-none"
-            style={{ ["--cut" as string]: "26px" }}
-            onMouseMove={onMove}
-            onMouseDown={onDown}
-            onMouseUp={onUp}
-            onMouseLeave={onLeave}
-          >
-            {/* ── Elastic mesh canvas — sits at z-0 behind all content ── */}
-            <canvas
-              ref={meshCanvasRef}
-              className="absolute inset-0 w-full h-full pointer-events-none z-0"
-              aria-hidden="true"
-            />
-
-            {/* ── All panel content layered above the mesh ── */}
-            <div className="relative z-10 p-5 md:p-6">
-
-              {/* Industrial corner chip */}
-              <span className="absolute top-3 left-3 tag-cut bg-accent px-2 py-0.5 font-mono text-[0.52rem] tracking-[0.16em] text-accent-foreground uppercase z-20">
-                CHOS // COMMONS
-              </span>
-
-              {/* Panel header */}
-              <div className="mt-7 border-b border-border/80 pb-4">
-                <div className="flex items-center justify-between font-mono text-[0.6rem] tracking-wider uppercase">
-                  <div className="flex items-center gap-2">
-                    <span className="inline-block h-1.5 w-1.5 bg-accent animate-pulse" />
-                    <span className="text-foreground font-semibold">
-                      CONTRIBUTION TELEMETRY
-                    </span>
-                  </div>
-                  <span className="text-accent text-[0.52rem]">[ LIVING COMMONS ]</span>
-                </div>
-                {/* Telemetry stats row */}
-                <div className="mt-2.5 flex items-center gap-5 font-mono text-[0.54rem] text-muted-foreground tracking-widest uppercase">
-                  <span>
-                    <span className="text-accent font-semibold">247</span> commits
-                  </span>
-                  <span className="opacity-30">·</span>
-                  <span>
-                    <span className="text-foreground">14</span> contributors
-                  </span>
-                  <span className="opacity-30">·</span>
-                  <span>
-                    <span className="text-accent font-semibold">∞</span> streak
-                  </span>
-                </div>
-              </div>
-
-              {/* Heatmap */}
-              <div className="mt-5">
-                <div className="flex items-center justify-between font-mono text-[0.56rem] tracking-widest text-index uppercase mb-2">
-                  <span>PEER ACTIVITY MATRIX</span>
-                  <span>7 × 12 COMMIT GRAPH</span>
-                </div>
-
-                <div className="grid grid-cols-12 gap-[3px] p-3 border border-border/50 bg-background/60">
-                  {CONTRIBUTION_CELLS.map((c) => (
-                    <div
-                      key={c.id}
-                      title={`Cell #${c.id + 1}`}
-                      className={`aspect-square transition-all duration-150 ${
-                        c.isAccent
-                          ? "bg-accent hover:scale-110 shadow-[0_0_5px_rgba(204,255,0,0.5)]"
-                          : c.isHigh
-                          ? "bg-foreground/65 hover:bg-foreground hover:scale-110"
-                          : c.activity > 3
-                          ? "bg-foreground/22 hover:bg-foreground/45"
-                          : "bg-border/25 hover:bg-border/60"
-                      }`}
-                    />
-                  ))}
-                </div>
-
-                <div className="mt-2 flex items-center justify-between font-mono text-[0.5rem] text-index">
-                  <span>LESS</span>
-                  <div className="flex items-center gap-1">
-                    <span className="h-2 w-2 bg-border/25" />
-                    <span className="h-2 w-2 bg-foreground/22" />
-                    <span className="h-2 w-2 bg-foreground/65" />
-                    <span className="h-2 w-2 bg-accent" />
-                  </div>
-                  <span>MORE</span>
-                </div>
-              </div>
-
-              {/* Protocol list */}
-              <div className="mt-6 border-t border-border/70 pt-5">
-                <div className="font-mono text-[0.56rem] tracking-widest text-index uppercase mb-3">
-                  COMMONS PROTOCOL
-                </div>
-                <ul className="border-t border-border/50">
-                  {[
-                    { step: "01", label: "Learn", desc: "Study source code like classical literature." },
-                    { step: "02", label: "Build", desc: "Ship under real clock pressure." },
-                    { step: "03", label: "Contribute", desc: "Fix the bug. Submit the patch upstream." },
-                    { step: "04", label: "Share", desc: "Leave the door unlocked for whoever comes next." },
-                  ].map((s) => (
-                    <li
-                      key={s.step}
-                      className="group grid grid-cols-[2rem_4.5rem_1fr] items-start gap-2 border-b border-border/40 py-3 hover:bg-surface/50 transition-colors"
-                    >
-                      <span className="font-mono text-[0.58rem] text-accent font-semibold pt-px">
-                        {s.step}
-                      </span>
-                      <span className="font-mono text-xs font-semibold uppercase text-foreground group-hover:text-accent transition-colors">
-                        {s.label}
-                      </span>
-                      <span className="text-[0.7rem] text-muted-foreground leading-relaxed">
-                        {s.desc}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              {/* Footer */}
-              <div className="mt-5 border-t border-border/70 pt-4 flex items-center justify-between gap-3 font-mono text-[0.58rem]">
-                <span className="text-muted-foreground text-[0.52rem] tracking-wider uppercase">
-                  drag to distort · all artifacts open
-                </span>
-                <a
-                  href="https://github.com/chaoscomputerclub/chaoscomputerclub.in"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="cursor-target shrink-0 inline-flex items-center gap-1.5 border border-border px-3 py-1.5 tracking-[0.12em] uppercase text-foreground transition-colors hover:border-accent hover:text-accent"
-                >
-                  [ GitHub → ]
-                </a>
-              </div>
-            </div>
-          </div>
+          <ElasticTelemetryCanvas />
         </Rise>
       </div>
 
@@ -497,7 +551,6 @@ export function BlockScreensSplit() {
           ))}
         </ul>
 
-        {/* Bottom stamp */}
         <div className="mt-8 flex items-center gap-4 font-mono text-[0.56rem] tracking-widest text-index uppercase">
           <span className="inline-block h-px flex-1 bg-border/60" />
           <span>CCC // UNRESTRICTED // OPEN SOURCE</span>
