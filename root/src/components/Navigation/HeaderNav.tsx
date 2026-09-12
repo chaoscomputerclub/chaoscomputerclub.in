@@ -55,11 +55,20 @@ const SOCIAL_ITEMS = [
  * Mobile: Uses StaggeredMenu (GSAP-animated fullscreen slide-in)
  * Desktop (xl+): Clean inline text navigation links
  */
+const DEFAULT_MEDICAPS_URL = "https://medicaps.chaoscomputerclub.in";
+
 export function HeaderNav() {
   const [activeTab, setActiveTab] = useState<string>("#top");
   const [navVisible, setNavVisible] = useState(true);
+  const [medicapsUrl, setMedicapsUrl] = useState<string>(DEFAULT_MEDICAPS_URL);
   const lastScrollY = useRef(0);
   const lenis = useLenisScroll();
+
+  useEffect(() => {
+    if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
+      setMedicapsUrl("http://localhost:8081");
+    }
+  }, []);
 
   // Smooth scroll handler — uses Lenis when available, CSS fallback otherwise
   const scrollTo = useCallback(
@@ -195,12 +204,7 @@ export function HeaderNav() {
           {/* Right: Join us action — visible on desktop (xl+) */}
           <div className="hidden xl:flex items-center shrink-0">
             <a
-              href="#manifesto"
-              onClick={(e) => {
-                e.preventDefault();
-                setActiveTab("#manifesto");
-                scrollTo("#manifesto");
-              }}
+              href={medicapsUrl}
               className="inline-flex h-10 items-center justify-center rounded-none bg-accent px-5 font-mono text-[0.6rem] tracking-[0.18em] text-accent-foreground uppercase font-semibold transition-colors hover:bg-accent/85 cursor-pointer select-none"
             >
               [ Join us → ]
@@ -228,11 +232,9 @@ export function HeaderNav() {
           navHidden={!navVisible}
           footerContent={(closeMenu) => (
             <a
-              href="#manifesto"
-              onClick={(e) => {
-                e.preventDefault();
+              href={medicapsUrl}
+              onClick={() => {
                 closeMenu?.();
-                handleMobileItemClick("#manifesto");
               }}
               className="flex h-11 w-full items-center justify-center rounded-none bg-accent px-5 font-mono text-[0.68rem] tracking-[0.18em] text-accent-foreground uppercase font-semibold transition-colors hover:bg-accent/85 cursor-pointer select-none"
             >
