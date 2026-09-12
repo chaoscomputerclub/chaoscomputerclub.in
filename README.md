@@ -326,33 +326,33 @@ Off-white text, never pure #FFFFFF at full opacity everywhere — vary text opac
 
 One accent color, used with intention — for interactive states, key CTAs, and a small number of emphasis moments. Resist the urge to use it everywhere; scarcity is what makes it feel premium.
 
-If subtle gradients or glow effects are used, keep them very low-opacity and purposeful (e.g. a soft accent glow behind the hero), never a rainbow-mesh background — that reads as generic AI-generated design.
+If subtle gradients or glow effects are used, keep them very low-opacity and purposeful (e.g. a soft accent glow behind the hero), never a rainbow‑mesh background — that reads as generic AI‑generated design.
 
 Layout & component architecture:
 
-Build on a real 12-column grid with consistent gutters and a defined max content width; every section aligns to it.
+Build on a real 12‑column grid with consistent gutters and a defined max content width; every section aligns to it.
 
 Symmetry is a stated requirement — value cards, feature grids, and repeated content blocks must share identical dimensions, padding, and internal alignment. No one card taller than its siblings because of copy length; solve that with copy editing or a fixed content structure, not layout hacks.
 
 Consistent vertical rhythm between sections (a defined spacing scale, not arbitrary margins per section).
 
-Component architecture should be composable and tokenized: shared primitives (Section, Card, Eyebrow label, Button, Grid) that every page section is built from, not bespoke one-off markup per section.
+Component architecture should be composable and tokenized: shared primitives (Section, Card, Eyebrow label, Button, Grid) that every page section is built from, not bespoke one‑off markup per section.
 
 Motion system:
 
-Define 1–2 easing curves for the whole site (e.g. a custom cubic-bezier that feels "Apple-smooth" — decelerating, no bounce unless a bounce is a deliberate brand choice) and reuse them everywhere.
+Define 1–2 easing curves for the whole site (e.g. a custom cubic‑bezier that feels "Apple‑smooth" — decelerating, no bounce unless a bounce is a deliberate brand choice) and reuse them everywhere.
 
-Scroll-triggered reveals: content enters with subtle opacity + translate (8–16px), staggered by 40–80ms across siblings — never a hard cut-in.
+Scroll‑triggered reveals: content enters with subtle opacity + translate (8–16px), staggered by 40–80ms across siblings — never a hard cut‑in.
 
-Micro-interactions: magnetic/hover-responsive buttons, smooth underline or fill transitions on links, cursor-aware hover states on cards, smooth anchor-scroll for nav.
+Micro‑interactions: magnetic/hover‑responsive buttons, smooth underline or fill transitions on links, cursor‑aware hover states on cards, smooth anchor‑scroll for nav.
 
-Page should feel like it has inertia — transitions between states (menu open, section reveal, hover) should never be instant/jarring, but also never sluggish. Target 150–300ms for micro-interactions, 400–700ms for larger reveals.
+Page should feel like it has inertia — transitions between states (menu open, section reveal, hover) should never be instant/jarring, but also never sluggish. Target 150–300ms for micro‑interactions, 400–700ms for larger reveals.
 
-Motion must be accessible: respect prefers-reduced-motion and provide a non-animated fallback that's still fully usable.
+Motion must be accessible: respect prefers‑reduced‑motion and provide a non‑animated fallback that's still fully usable.
 
 Phase 3 — Build
 
-Non-negotiables:
+Non‑negotiables:
 
 Use the design system defined in Phase 2 as tokens (CSS variables / Tailwind theme extension) — no magic numbers scattered through components.
 
@@ -362,17 +362,6 @@ Zero static or placeholder content. No lorem ipsum, no fake stat counters, no du
 
 Fully responsive: the symmetric grid and type scale need real mobile/tablet breakpoints, not just a squished desktop layout.
 
-Accessible: semantic HTML, keyboard-navigable interactive elements, visible focus states styled to match the theme (not the browser default), sufficient contrast even within the dark palette.
+Accessible: semantic HTML, keyboard‑navigable interactive elements, visible focus states styled to match the theme (not the browser default), sufficient contrast even within the dark palette.
 
-No layout shift, no unused code, no console warnings.
-
-Deliverable: the built page(s), the design tokens file (colors/type/spacing/motion curves) as its own reviewable artifact, and a short rationale for the accent color and type choices you made.
-
-Notes for you (not part of the pasted prompt)
-
-Attach the manifesto text itself (not a summary) — Phase 1 depends on the agent reading your actual words and tone, not a paraphrase of them.
-
-If you already have a theme file from another project (ShareXpress/Interleet) you want the accent color or type family to loosely relate to for brand consistency across your projects, say so explicitly — otherwise the agent will pick fresh values.
-
-Consider specifying the React Bits component now, since the whole page's motion vocabulary should extend from it — the agent can't "go beyond" without knowing what it's extending.
-
+No layout shift,
