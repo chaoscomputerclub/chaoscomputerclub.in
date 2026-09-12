@@ -5,8 +5,8 @@
  * Licensed under the MIT License. See LICENSE in the project root for license information.
  */
 
-import { useRef, useEffect } from "react";
-import { motion } from "framer-motion";
+import { useRef, useState } from "react";
+import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
 import BlurText from "@/components/Motion/BlurText";
 import { Rise } from "@/components/Motion/MaskedLine";
 
@@ -65,357 +65,179 @@ const CONTRIBUTION_CELLS = Array.from({ length: 84 }).map((_, i) => {
   return { id: i, isHigh, isAccent, activity };
 });
 
-/* ─── Elastic Telemetry Canvas ──────────────────────────────────────────── */
+/* ─── Interactive 3D Spring Telemetry Card ───────────────────────────────── */
 
-const MESH_COLS = 12;
-const MESH_ROWS = 8;
-const SPRING_K  = 0.028;
-const DAMPING   = 0.86;
-const PULL_DRAG = 0.48;
-const PULL_HOVER = 0.14;
-const R_FACTOR  = 0.18; // fraction of min(w,h)
+function InteractiveTelemetryCard() {
+  const cardRef = useRef<HTMLDivElement>(null);
 
-type MPt = { x: number; y: number; ox: number; oy: number; vx: number; vy: number };
+  // Normalized cursor coordinates (-0.5 to 0.5)
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
 
-/** Full-canvas elastic mesh that renders ALL content + the spring grid together. */
-function ElasticTelemetryCanvas() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  // Store mutable state in a ref to avoid triggering re-renders
-  const S = useRef({
-    pts: [] as MPt[],
-    dpr: 1,
-    mouse: { x: -9999, y: -9999, dragging: false },
+  // Damped spring physics for tactile jelly response
+  const springX = useSpring(mouseX, { stiffness: 240, damping: 22, mass: 0.65 });
+  const springY = useSpring(mouseY, { stiffness: 240, damping: 22, mass: 0.65 });
+
+  // 3D Tilt angles (subtle & ergonomic ±7 degrees)
+  const rotateX = useTransform(springY, [-0.5, 0.5], [7, -7]);
+  const rotateY = useTransform(springX, [-0.5, 0.5], [-7, 7]);
+
+  // Magnetic spring pull (±6px)
+  const translateX = useTransform(springX, [-0.5, 0.5], [-6, 6]);
+  const translateY = useTransform(springY, [-0.5, 0.5], [-6, 6]);
+
+  // Ambient glare position
+  const [glare, setGlare] = useState<{ x: number; y: number; opacity: number }>({
+    x: 50,
+    y: 50,
+    opacity: 0,
   });
 
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    const s = S.current;
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const el = cardRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const px = (e.clientX - rect.left) / rect.width;
+    const py = (e.clientY - rect.top) / rect.height;
 
-    /* Bilinear mesh displacement at normalised (nx, ny) ∈ [0,1] */
-    const disp = (nx: number, ny: number): [number, number] => {
-      if (!s.pts.length) return [0, 0];
-      const gx = Math.max(0, Math.min(nx * MESH_COLS, MESH_COLS));
-      const gy = Math.max(0, Math.min(ny * MESH_ROWS, MESH_ROWS));
-      const c0 = Math.min(Math.floor(gx), MESH_COLS - 1);
-      const c1 = Math.min(c0 + 1, MESH_COLS);
-      const r0 = Math.min(Math.floor(gy), MESH_ROWS - 1);
-      const r1 = Math.min(r0 + 1, MESH_ROWS);
-      const tx = gx - c0, ty = gy - r0;
-      const W = MESH_COLS + 1;
-      const p00 = s.pts[r0*W+c0], p10 = s.pts[r0*W+c1];
-      const p01 = s.pts[r1*W+c0], p11 = s.pts[r1*W+c1];
-      const bi = (a: number, b: number, c: number, d: number) =>
-        (a*(1-tx) + b*tx)*(1-ty) + (c*(1-tx) + d*tx)*ty;
-      return [
-        bi(p00.x-p00.ox, p10.x-p10.ox, p01.x-p01.ox, p11.x-p11.ox),
-        bi(p00.y-p00.oy, p10.y-p10.oy, p01.y-p01.oy, p11.y-p11.oy),
-      ];
-    };
+    mouseX.set(px - 0.5);
+    mouseY.set(py - 0.5);
+    setGlare({ x: px * 100, y: py * 100, opacity: 1 });
+  };
 
-    /** Warp a CSS-pixel point through the current mesh displacement */
-    const w = (px: number, py: number, cw: number, ch: number): [number, number] => {
-      const [dx, dy] = disp(px/cw, py/ch);
-      return [px+dx, py+dy];
-    };
-
-    const init = () => {
-      const rect = canvas.getBoundingClientRect();
-      const cw = rect.width, ch = rect.height;
-      if (cw < 1 || ch < 1) return;
-      const dpr = Math.min(window.devicePixelRatio||1, 2);
-      canvas.width  = Math.floor(cw * dpr);
-      canvas.height = Math.floor(ch * dpr);
-      s.dpr = dpr;
-      s.pts = [];
-      for (let r = 0; r <= MESH_ROWS; r++) {
-        for (let c = 0; c <= MESH_COLS; c++) {
-          const ox = (c/MESH_COLS)*cw, oy = (r/MESH_ROWS)*ch;
-          s.pts.push({ x: ox, y: oy, ox, oy, vx: 0, vy: 0 });
-        }
-      }
-    };
-
-    const draw = (cw: number, ch: number) => {
-      ctx.setTransform(s.dpr, 0, 0, s.dpr, 0, 0);
-      ctx.clearRect(0, 0, cw, ch);
-
-      // Panel background — matches bg-surface/50
-      ctx.fillStyle = "#111111";
-      ctx.fillRect(0, 0, cw, ch);
-
-      if (!s.pts.length) return;
-
-      const pad  = cw * 0.06;
-      const padT = ch * 0.055;
-
-      /* ─ CORNER CHIP ─────────────────────────────────────────────────
-         Drawn first at canvas origin (never warped — always top-left)  */
-      ctx.fillStyle = "#ccff00";
-      ctx.fillRect(0, 0, 94, 20);
-      ctx.font = "700 7.5px 'IBM Plex Mono', monospace";
-      ctx.fillStyle = "#080808";
-      ctx.textAlign = "left";
-      ctx.fillText("CHOS // COMMONS", 6, 13);
-
-      /* ─ HEADER ─────────────────────────────────────────────────────── */
-      ctx.textAlign = "left";
-      const headerY = padT + 30;
-
-      const [dotX, dotY] = w(pad, headerY, cw, ch);
-      ctx.font = "600 9px 'IBM Plex Mono', monospace";
-      ctx.fillStyle = "#ccff00";
-      ctx.fillText("■", dotX, dotY);
-
-      const [hdX, hdY] = w(pad + 13, headerY, cw, ch);
-      ctx.font = "600 9px 'IBM Plex Mono', monospace";
-      ctx.fillStyle = "#eaeaea";
-      ctx.fillText("CONTRIBUTION TELEMETRY", hdX, hdY);
-
-      const [lcX, lcY] = w(cw - pad - 90, headerY, cw, ch);
-      ctx.font = "500 7.5px 'IBM Plex Mono', monospace";
-      ctx.fillStyle = "#ccff00";
-      ctx.fillText("[ LIVING COMMONS ]", lcX, lcY);
-
-      // Stats row
-      const [sX, sY] = w(pad, headerY + 14, cw, ch);
-      ctx.font = "400 7.5px 'IBM Plex Mono', monospace";
-      ctx.fillStyle = "rgba(234,234,234,0.34)";
-      ctx.fillText("247 COMMITS  ·  14 CONTRIBUTORS  ·  ∞ STREAK", sX, sY);
-
-      // Header divider
-      const divY = headerY + 24;
-      const [d0x, d0y] = w(pad, divY, cw, ch);
-      const [d1x, d1y] = w(cw - pad, divY, cw, ch);
-      ctx.beginPath(); ctx.moveTo(d0x, d0y); ctx.lineTo(d1x, d1y);
-      ctx.strokeStyle = "rgba(234,234,234,0.12)";
-      ctx.lineWidth = 0.5; ctx.stroke();
-
-      /* ─ HEATMAP ─────────────────────────────────────────────────────── */
-      const hmLabelY = divY + 16;
-      const [hmLx, hmLy] = w(pad, hmLabelY, cw, ch);
-      ctx.font = "500 7px 'IBM Plex Mono', monospace";
-      ctx.fillStyle = "rgba(234,234,234,0.28)";
-      ctx.fillText("PEER ACTIVITY MATRIX", hmLx, hmLy);
-      const [hmRx, hmRy] = w(cw - pad - 85, hmLabelY, cw, ch);
-      ctx.fillText("7 × 12 COMMIT GRAPH", hmRx, hmRy);
-
-      // Heatmap inset background
-      const hmLeft = pad, hmTop = hmLabelY + 7;
-      const hmW = cw - pad * 2, hmH = ch * 0.28;
-      const [hbx, hby] = w(hmLeft, hmTop, cw, ch);
-      const [hbx2, hby2] = w(hmLeft + hmW, hmTop + hmH, cw, ch);
-      ctx.fillStyle = "rgba(10,10,10,0.60)";
-      // approximate inset box as warped quad
-      const [hbtlx,hbtly] = w(hmLeft,         hmTop,       cw, ch);
-      const [hbtrx,hbtry] = w(hmLeft + hmW,   hmTop,       cw, ch);
-      const [hbbrx,hbbry] = w(hmLeft + hmW,   hmTop + hmH, cw, ch);
-      const [hbblx,hbbly] = w(hmLeft,         hmTop + hmH, cw, ch);
-      ctx.beginPath();
-      ctx.moveTo(hbtlx,hbtly); ctx.lineTo(hbtrx,hbtry);
-      ctx.lineTo(hbbrx,hbbry); ctx.lineTo(hbblx,hbbly);
-      ctx.closePath();
-      ctx.fillStyle = "rgba(8,8,8,0.55)"; ctx.fill();
-      ctx.strokeStyle = "rgba(234,234,234,0.10)";
-      ctx.lineWidth = 0.5; ctx.stroke();
-
-      const HCOLS = 12, HROWS = 7;
-      const cellW = hmW / HCOLS, cellH = hmH / HROWS;
-      const cellPad = 2.5;
-
-      CONTRIBUTION_CELLS.forEach((cell, i) => {
-        const col = i % HCOLS, row = Math.floor(i / HCOLS);
-        const x0 = hmLeft + col * cellW + cellPad;
-        const y0 = hmTop  + row * cellH + cellPad;
-        const x1 = x0 + cellW - cellPad * 2;
-        const y1 = y0 + cellH - cellPad * 2;
-
-        const [tlx, tly]  = w(x0, y0, cw, ch);
-        const [trx, try_] = w(x1, y0, cw, ch);
-        const [brx, bry]  = w(x1, y1, cw, ch);
-        const [blx, bly]  = w(x0, y1, cw, ch);
-
-        if (cell.isAccent)         ctx.fillStyle = "#ccff00";
-        else if (cell.isHigh)      ctx.fillStyle = "rgba(234,234,234,0.68)";
-        else if (cell.activity > 3) ctx.fillStyle = "rgba(234,234,234,0.22)";
-        else                        ctx.fillStyle = "rgba(234,234,234,0.07)";
-
-        ctx.beginPath();
-        ctx.moveTo(tlx, tly); ctx.lineTo(trx, try_);
-        ctx.lineTo(brx, bry); ctx.lineTo(blx, bly);
-        ctx.closePath(); ctx.fill();
-      });
-
-      // Heatmap legend
-      const legY = hmTop + hmH + 9;
-      const [legLx, legLy] = w(pad, legY, cw, ch);
-      ctx.font = "400 6.5px 'IBM Plex Mono', monospace";
-      ctx.fillStyle = "rgba(234,234,234,0.22)";
-      ctx.fillText("LESS", legLx, legLy);
-      ["rgba(234,234,234,0.07)","rgba(234,234,234,0.22)","rgba(234,234,234,0.68)","#ccff00"].forEach((col, i) => {
-        const [sx2, sy2] = w(pad + 30 + i * 9, legY - 5.5, cw, ch);
-        ctx.fillStyle = col; ctx.fillRect(sx2, sy2, 7, 7);
-      });
-      const [legRx, legRy] = w(pad + 30 + 4*9 + 4, legY, cw, ch);
-      ctx.fillStyle = "rgba(234,234,234,0.22)";
-      ctx.fillText("MORE", legRx, legRy);
-
-      /* ─ PROTOCOL DIVIDER + LABEL ────────────────────────────────────── */
-      const protoDivY = legY + 14;
-      const [pd0x, pd0y] = w(pad, protoDivY, cw, ch);
-      const [pd1x, pd1y] = w(cw - pad, protoDivY, cw, ch);
-      ctx.beginPath(); ctx.moveTo(pd0x, pd0y); ctx.lineTo(pd1x, pd1y);
-      ctx.strokeStyle = "rgba(234,234,234,0.10)";
-      ctx.lineWidth = 0.5; ctx.stroke();
-
-      const protoLabelY = protoDivY + 12;
-      const [pLx, pLy] = w(pad, protoLabelY, cw, ch);
-      ctx.font = "500 7px 'IBM Plex Mono', monospace";
-      ctx.fillStyle = "rgba(234,234,234,0.26)";
-      ctx.fillText("COMMONS PROTOCOL", pLx, pLy);
-
-      /* ─ PROTOCOL ROWS ──────────────────────────────────────────────── */
-      const steps = [
-        { step: "01", label: "LEARN",      desc: "Study source code like classical literature." },
-        { step: "02", label: "BUILD",      desc: "Ship under real clock pressure." },
-        { step: "03", label: "CONTRIBUTE", desc: "Fix the bug. Submit the patch upstream." },
-        { step: "04", label: "SHARE",      desc: "Leave the door unlocked for whoever comes next." },
-      ];
-      const protoStartY = protoLabelY + 10;
-      const footerTopY  = ch - 30;
-      const rowH = (footerTopY - protoStartY) / steps.length;
-
-      steps.forEach((step, i) => {
-        const sepY = protoStartY + i * rowH;
-        // Row separator
-        const [sp0x, sp0y] = w(pad, sepY, cw, ch);
-        const [sp1x, sp1y] = w(cw - pad, sepY, cw, ch);
-        ctx.beginPath(); ctx.moveTo(sp0x, sp0y); ctx.lineTo(sp1x, sp1y);
-        ctx.strokeStyle = "rgba(234,234,234,0.08)";
-        ctx.lineWidth = 0.5; ctx.stroke();
-
-        const textY = sepY + rowH * 0.58;
-
-        const [stX, stY] = w(pad, textY, cw, ch);
-        ctx.font = "700 8.5px 'IBM Plex Mono', monospace";
-        ctx.fillStyle = "#ccff00";
-        ctx.fillText(step.step, stX, stY);
-
-        const [laX, laY] = w(pad + cw * 0.085, textY, cw, ch);
-        ctx.font = "700 8.5px 'IBM Plex Mono', monospace";
-        ctx.fillStyle = "#eaeaea";
-        ctx.fillText(step.label, laX, laY);
-
-        const [deX, deY] = w(pad + cw * 0.23, textY, cw, ch);
-        ctx.font = "400 8px 'IBM Plex Mono', monospace";
-        ctx.fillStyle = "rgba(234,234,234,0.40)";
-        ctx.fillText(step.desc, deX, deY);
-      });
-
-      /* ─ FOOTER ──────────────────────────────────────────────────────── */
-      const ftSepY = footerTopY;
-      const [fs0x, fs0y] = w(pad, ftSepY, cw, ch);
-      const [fs1x, fs1y] = w(cw - pad, ftSepY, cw, ch);
-      ctx.beginPath(); ctx.moveTo(fs0x, fs0y); ctx.lineTo(fs1x, fs1y);
-      ctx.strokeStyle = "rgba(234,234,234,0.10)";
-      ctx.lineWidth = 0.5; ctx.stroke();
-
-      const ftTextY = ftSepY + 13;
-      const [ftX, ftY] = w(pad, ftTextY, cw, ch);
-      ctx.font = "400 7px 'IBM Plex Mono', monospace";
-      ctx.fillStyle = "rgba(234,234,234,0.18)";
-      ctx.fillText("drag to distort  ·  all artifacts open", ftX, ftY);
-
-      const [ghX, ghY] = w(cw - pad - 70, ftTextY, cw, ch);
-      ctx.fillStyle = "rgba(234,234,234,0.38)";
-      ctx.fillText("[ GitHub → ]", ghX, ghY);
-
-      /* ─ OUTER BORDER ────────────────────────────────────────────────── */
-      ctx.strokeStyle = "rgba(234,234,234,0.10)";
-      ctx.lineWidth = 1;
-      ctx.strokeRect(0.5, 0.5, cw - 1, ch - 1);
-    };
-
-    let raf = 0;
-
-    const tick = () => {
-      const rect = canvas.getBoundingClientRect();
-      const cw = rect.width, ch = rect.height;
-
-      if (s.pts.length) {
-        const m = s.mouse;
-        const radius = R_FACTOR * Math.min(cw, ch);
-        const pull = m.dragging ? PULL_DRAG : PULL_HOVER;
-
-        for (const p of s.pts) {
-          p.vx += (p.ox - p.x) * SPRING_K;
-          p.vy += (p.oy - p.y) * SPRING_K;
-
-          const dmx = m.x - p.x, dmy = m.y - p.y;
-          const dist = Math.sqrt(dmx*dmx + dmy*dmy);
-          if (dist < radius && dist > 0) {
-            const force = ((radius-dist)/radius) * pull;
-            p.vx += (dmx/dist) * force * 5;
-            p.vy += (dmy/dist) * force * 5;
-          }
-
-          p.vx *= DAMPING; p.vy *= DAMPING;
-          p.x += p.vx;    p.y += p.vy;
-        }
-
-        if (cw > 0 && ch > 0) draw(cw, ch);
-      }
-
-      raf = requestAnimationFrame(tick);
-    };
-
-    raf = requestAnimationFrame(() => { init(); tick(); });
-
-    const ro = new ResizeObserver(() => init());
-    ro.observe(canvas);
-
-    const onMove = (e: MouseEvent | TouchEvent) => {
-      const rect = canvas.getBoundingClientRect();
-      const cx = "touches" in e ? (e as TouchEvent).touches[0].clientX : (e as MouseEvent).clientX;
-      const cy = "touches" in e ? (e as TouchEvent).touches[0].clientY : (e as MouseEvent).clientY;
-      s.mouse.x = cx - rect.left;
-      s.mouse.y = cy - rect.top;
-    };
-    const onDown = () => { s.mouse.dragging = true; };
-    const onUp   = () => { s.mouse.dragging = false; };
-    const onOut  = () => { s.mouse.x = -9999; s.mouse.y = -9999; s.mouse.dragging = false; };
-
-    canvas.addEventListener("mousemove",  onMove);
-    canvas.addEventListener("touchmove",  onMove, { passive: true });
-    canvas.addEventListener("mousedown",  onDown);
-    canvas.addEventListener("touchstart", onDown, { passive: true });
-    window.addEventListener("mouseup",    onUp);
-    window.addEventListener("touchend",   onUp);
-    canvas.addEventListener("mouseleave", onOut);
-
-    return () => {
-      cancelAnimationFrame(raf);
-      ro.disconnect();
-      canvas.removeEventListener("mousemove",  onMove);
-      canvas.removeEventListener("touchmove",  onMove);
-      canvas.removeEventListener("mousedown",  onDown);
-      canvas.removeEventListener("touchstart", onDown);
-      window.removeEventListener("mouseup",    onUp);
-      window.removeEventListener("touchend",   onUp);
-      canvas.removeEventListener("mouseleave", onOut);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const handleMouseLeave = () => {
+    mouseX.set(0);
+    mouseY.set(0);
+    setGlare((g) => ({ ...g, opacity: 0 }));
+  };
 
   return (
-    <canvas
-      ref={canvasRef}
-      className="block w-full cursor-crosshair select-none"
-      style={{ aspectRatio: "4/3.5" }}
-      aria-label="Contribution Telemetry — elastic mesh panel"
-    />
+    <div style={{ perspective: 1200 }} className="relative w-full">
+      <motion.div
+        ref={cardRef}
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
+        style={{
+          rotateX,
+          rotateY,
+          x: translateX,
+          y: translateY,
+          transformStyle: "preserve-3d",
+          ["--cut" as string]: "26px",
+        }}
+        whileHover={{ scale: 1.012 }}
+        transition={{ type: "spring", stiffness: 350, damping: 20 }}
+        data-spec-box
+        className="tag-cut relative border border-border bg-surface/50 p-5 md:p-6 backdrop-blur-sm transition-shadow duration-300 hover:shadow-[0_20px_50px_rgba(0,0,0,0.5),0_0_30px_rgba(204,255,0,0.06)]"
+      >
+        {/* Dynamic ambient highlight glare */}
+        <div
+          className="pointer-events-none absolute inset-0 rounded-[inherit] transition-opacity duration-300 z-10"
+          style={{
+            opacity: glare.opacity,
+            background: `radial-gradient(600px circle at ${glare.x}% ${glare.y}%, rgba(204,255,0,0.07), transparent 60%)`,
+          }}
+        />
+
+        {/* Industrial corner chip */}
+        <span className="absolute top-3 left-3 tag-cut bg-accent px-2 py-0.5 font-mono text-[0.52rem] tracking-[0.16em] text-accent-foreground uppercase z-20">
+          CHOS // COMMONS
+        </span>
+
+        {/* Panel header */}
+        <div className="mt-7 flex items-center justify-between border-b border-border/80 pb-4 font-mono text-[0.6rem] tracking-wider uppercase text-muted-foreground">
+          <div className="flex items-center gap-2">
+            <span className="inline-block h-1.5 w-1.5 bg-accent animate-pulse" />
+            <span className="text-foreground font-semibold">
+              CONTRIBUTION TELEMETRY
+            </span>
+          </div>
+          <span className="text-accent text-[0.52rem]">[ LIVING COMMONS ]</span>
+        </div>
+
+        {/* Heatmap */}
+        <div className="mt-5">
+          <div className="flex items-center justify-between font-mono text-[0.56rem] tracking-widest text-index uppercase mb-2">
+            <span>PEER ACTIVITY MATRIX</span>
+            <span>7 × 12 COMMIT GRAPH</span>
+          </div>
+
+          <div className="grid grid-cols-12 gap-1 p-3 border border-border/50 bg-background/50">
+            {CONTRIBUTION_CELLS.map((c) => (
+              <div
+                key={c.id}
+                title={`Cell #${c.id + 1}`}
+                className={`aspect-square transition-all duration-200 cursor-pointer ${
+                  c.isAccent
+                    ? "bg-accent hover:scale-110 shadow-[0_0_6px_rgba(204,255,0,0.45)]"
+                    : c.isHigh
+                    ? "bg-foreground/70 hover:bg-foreground hover:scale-110"
+                    : c.activity > 3
+                    ? "bg-foreground/25 hover:bg-foreground/50"
+                    : "bg-border/30 hover:bg-border/70"
+                }`}
+              />
+            ))}
+          </div>
+
+          <div className="mt-2 flex items-center justify-between font-mono text-[0.5rem] text-index">
+            <span>LESS</span>
+            <div className="flex items-center gap-1">
+              <span className="h-2 w-2 bg-border/30" />
+              <span className="h-2 w-2 bg-foreground/25" />
+              <span className="h-2 w-2 bg-foreground/70" />
+              <span className="h-2 w-2 bg-accent" />
+            </div>
+            <span>MORE</span>
+          </div>
+        </div>
+
+        {/* Protocol list */}
+        <div className="mt-6 border-t border-border/70 pt-5">
+          <div className="font-mono text-[0.56rem] tracking-widest text-index uppercase mb-3">
+            COMMONS PROTOCOL
+          </div>
+          <ul className="border-t border-border/50">
+            {[
+              { step: "01", label: "Learn", desc: "Study source code like classical literature." },
+              { step: "02", label: "Build", desc: "Ship under real clock pressure." },
+              { step: "03", label: "Contribute", desc: "Fix the bug. Submit the patch upstream." },
+              { step: "04", label: "Share", desc: "Leave the door unlocked for whoever comes next." },
+            ].map((s) => (
+              <li
+                key={s.step}
+                className="group grid grid-cols-[2rem_4.5rem_1fr] items-start gap-2 border-b border-border/40 py-3 hover:bg-surface/60 transition-colors"
+              >
+                <span className="font-mono text-[0.58rem] text-accent font-semibold pt-px">
+                  {s.step}
+                </span>
+                <span className="font-mono text-xs font-semibold uppercase text-foreground group-hover:text-accent transition-colors">
+                  {s.label}
+                </span>
+                <span className="text-[0.7rem] text-muted-foreground leading-relaxed">
+                  {s.desc}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {/* Footer */}
+        <div className="mt-5 border-t border-border/70 pt-4 flex items-center justify-between gap-3 font-mono text-[0.58rem]">
+          <span className="text-muted-foreground">
+            All artifacts open by default.
+          </span>
+          <a
+            href="https://github.com/chaoscomputerclub/chaoscomputerclub.in"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="cursor-target shrink-0 inline-flex items-center gap-1.5 border border-border px-3 py-1.5 tracking-[0.12em] uppercase text-foreground transition-colors hover:border-accent hover:text-accent"
+          >
+            [ GitHub → ]
+          </a>
+        </div>
+      </motion.div>
+    </div>
   );
 }
 
@@ -462,7 +284,7 @@ export function BlockScreensSplit() {
             </p>
           </Rise>
 
-          {/* Axiom spec list */}
+          {/* Axiom spec list — mirrors BlockVerticalSpec pattern */}
           <ul className="mt-8 border-t border-border">
             {AXIOMS.map((a, i) => (
               <motion.li
@@ -505,6 +327,7 @@ export function BlockScreensSplit() {
                 We learn from what others built, contribute what we discover, and
                 leave something better for whoever comes next. That&apos;s the cycle.
               </p>
+              {/* Cycle pill breadcrumbs */}
               <div className="mt-4 flex flex-wrap items-center gap-1.5 font-mono text-[0.65rem]">
                 {(["Learn", "Build", "Contribute", "Share"] as const).map((s, i, arr) => (
                   <span key={s} className="contents">
@@ -527,9 +350,9 @@ export function BlockScreensSplit() {
           </Rise>
         </div>
 
-        {/* Right ── Full Elastic Mesh Canvas Panel */}
+        {/* Right ── Contribution Telemetry Panel (Exact Original UI with 3D Spring Tilt) */}
         <Rise delay={0.15} className="md:col-span-6 md:col-start-7">
-          <ElasticTelemetryCanvas />
+          <InteractiveTelemetryCard />
         </Rise>
       </div>
 
@@ -568,6 +391,7 @@ export function BlockScreensSplit() {
           ))}
         </ul>
 
+        {/* Bottom stamp */}
         <div className="mt-8 flex items-center gap-4 font-mono text-[0.56rem] tracking-widest text-index uppercase">
           <span className="inline-block h-px flex-1 bg-border/60" />
           <span>CCC // UNRESTRICTED // OPEN SOURCE</span>
