@@ -10,7 +10,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.core.db import AsyncSessionLocal, init_db
-from app.routers import auth, contests, feed, leaderboard, passes, scoreboards, verify
+from app.routers import assessment, auth, contests, feed, leaderboard, passes, scoreboards, verify
 from app.services.seed_service import seed_database
 
 
@@ -66,6 +66,7 @@ app.include_router(leaderboard.router, prefix=settings.API_PREFIX)
 app.include_router(verify.router, prefix=settings.API_PREFIX)
 app.include_router(passes.router, prefix=settings.API_PREFIX)
 app.include_router(feed.router, prefix=settings.API_PREFIX)
+app.include_router(assessment.router, prefix=settings.API_PREFIX)
 
 
 if __name__ == "__main__":

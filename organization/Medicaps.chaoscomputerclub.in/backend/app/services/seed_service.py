@@ -10,6 +10,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.security import get_password_hash
 from app.models.db_models import (
     Announcement,
+    Assessment,
+    AssessmentProblem,
     CampusPass,
     ContestProblem,
     MemberProfile,
@@ -519,5 +521,83 @@ async def seed_database(db: AsyncSession):
     for a in announcements:
         db.add(a)
 
+    # 9. Phase 1 Online Screening Assessment
+    existing_assessment = await db.execute(select(Assessment).where(Assessment.slug == "chaos-arena-2026"))
+    if not existing_assessment.scalars().first():
+        assessment = Assessment(
+            id=str(uuid.uuid4()),
+            slug="chaos-arena-2026",
+            title="Chaos Arena '26 — Phase 1 Online Screening",
+            summary="Official Phase 1 online screening round. Top 30 qualifiers receive digital campus access QR passes for the physical lab final.",
+            duration_minutes=90,
+            starts_at=now - timedelta(days=2),
+            ends_at=now + timedelta(days=14),
+            is_active=True,
+            max_violations=3,
+        )
+        db.add(assessment)
+        await db.flush()
+
+        prob_a = AssessmentProblem(
+            id=str(uuid.uuid4()),
+            assessment_id=assessment.id,
+            problem_index="A",
+            title="Two-Value Target Match",
+            difficulty="EASY",
+            points=100,
+            time_limit=2.0,
+            memory_limit=256,
+            description="Given an array of integers `nums` and an integer `target`, find two distinct indices `i` and `j` such that `nums[i] + nums[j] == target`. Print the two indices in increasing order separated by space.",
+            input_format="First line: N and target. Second line: N space-separated integers.",
+            output_format="Print two space-separated indices.",
+            constraints="2 <= N <= 10^5, -10^9 <= nums[i] <= 10^9, -10^9 <= target <= 10^9",
+            starter_codes={
+                "python": "import sys\n\ndef solve():\n    lines = sys.stdin.read().split()\n    if not lines: return\n    n, target = int(lines[0]), int(lines[1])\n    nums = [int(x) for x in lines[2:2+n]]\n    seen = {}\n    for i, x in enumerate(nums):\n        rem = target - x\n        if rem in seen:\n            print(f\"{seen[rem]} {i}\")\n            return\n        seen[x] = i\n\nif __name__ == '__main__':\n    solve()\n",
+                "cpp": "#include <iostream>\n#include <vector>\n#include <unordered_map>\nusing namespace std;\nint main() {\n    int n; long long target;\n    if (!(cin >> n >> target)) return 0;\n    unordered_map<long long, int> seen;\n    for (int i = 0; i < n; i++) {\n        long long x; cin >> x;\n        long long rem = target - x;\n        if (seen.count(rem)) { cout << seen[rem] << \" \" << i << \"\\n\"; return 0; }\n        seen[x] = i;\n    }\n    return 0;\n}\n",
+                "javascript": "const fs = require('fs');\nconst tokens = fs.readFileSync(0, 'utf-8').trim().split(/\\s+/).map(Number);\nif (tokens.length >= 2) {\n    const n = tokens[0], target = tokens[1];\n    const seen = new Map();\n    for (let i = 0; i < n; i++) {\n        const val = tokens[2 + i];\n        const rem = target - val;\n        if (seen.has(rem)) { console.log(seen.get(rem) + ' ' + i); process.exit(0); }\n        seen.set(val, i);\n    }\n}\n"
+            },
+            sample_testcases=[
+                {"stdin": "4 9\n2 7 11 15", "expected_output": "0 1", "explanation": "nums[0] + nums[1] == 2 + 7 == 9"},
+                {"stdin": "3 6\n3 2 4", "expected_output": "1 2", "explanation": "nums[1] + nums[2] == 2 + 4 == 6"}
+            ],
+            hidden_testcases=[
+                {"stdin": "2 6\n3 3", "expected_output": "0 1", "weight": 25.0},
+                {"stdin": "5 100\n10 20 30 70 80", "expected_output": "2 3", "weight": 25.0},
+                {"stdin": "5 0\n-5 1 2 3 5", "expected_output": "0 4", "weight": 25.0},
+                {"stdin": "4 -8\n-10 -3 -5 2", "expected_output": "1 2", "weight": 25.0}
+            ]
+        )
+        db.add(prob_a)
+
+        prob_b = AssessmentProblem(
+            id=str(uuid.uuid4()),
+            assessment_id=assessment.id,
+            problem_index="B",
+            title="Bitwise XOR Subarray Count",
+            difficulty="MEDIUM",
+            points=200,
+            time_limit=2.0,
+            memory_limit=256,
+            description="Given an array of integers `A` of size `N` and an integer `B`, count the total number of contiguous subarrays having bitwise XOR equal to `B`.",
+            input_format="First line: N and B. Second line: N space-separated integers.",
+            output_format="Print a single integer representing the count of subarrays.",
+            constraints="1 <= N <= 10^5, 0 <= B <= 10^9, 0 <= A[i] <= 10^9",
+            starter_codes={
+                "python": "import sys\nfrom collections import defaultdict\n\ndef solve():\n    lines = sys.stdin.read().split()\n    if not lines: return\n    n, b = int(lines[0]), int(lines[1])\n    arr = [int(x) for x in lines[2:2+n]]\n    pref = 0\n    count = 0\n    freq = defaultdict(int)\n    freq[0] = 1\n    for x in arr:\n        pref ^= x\n        count += freq[pref ^ b]\n        freq[pref] += 1\n    print(count)\n\nif __name__ == '__main__':\n    solve()\n",
+                "cpp": "#include <iostream>\n#include <vector>\n#include <unordered_map>\nusing namespace std;\nint main() {\n    int n; long long b;\n    if (!(cin >> n >> b)) return 0;\n    long long pref = 0, count = 0;\n    unordered_map<long long, int> freq;\n    freq[0] = 1;\n    for (int i = 0; i < n; i++) {\n        long long x; cin >> x;\n        pref ^= x;\n        if (freq.count(pref ^ b)) count += freq[pref ^ b];\n        freq[pref]++;\n    }\n    cout << count << endl;\n    return 0;\n}\n",
+                "javascript": "const fs = require('fs');\nconst tokens = fs.readFileSync(0, 'utf-8').trim().split(/\\s+/).map(Number);\nif (tokens.length >= 2) {\n    const n = tokens[0], b = tokens[1];\n    let pref = 0, count = 0;\n    const freq = new Map();\n    freq.set(0, 1);\n    for (let i = 0; i < n; i++) {\n        pref ^= tokens[2 + i];\n        const target = pref ^ b;\n        if (freq.has(target)) count += freq.get(target);\n        freq.set(pref, (freq.get(pref) || 0) + 1);\n    }\n    console.log(count);\n}\n"
+            },
+            sample_testcases=[
+                {"stdin": "5 6\n4 2 2 6 4", "expected_output": "4", "explanation": "Subarrays: [4, 2], [4, 2, 2, 6, 4], [2, 2, 6], [6]"},
+                {"stdin": "4 1\n5 6 7 8", "expected_output": "2", "explanation": "Subarrays: [7], [5, 6, 7, 8]"}
+            ],
+            hidden_testcases=[
+                {"stdin": "3 0\n1 1 1", "expected_output": "1", "weight": 50.0},
+                {"stdin": "6 5\n1 2 3 4 5 6", "expected_output": "3", "weight": 50.0}
+            ]
+        )
+        db.add(prob_b)
+
     await db.commit()
-    print("✓ CCC Medi-Caps Database seeded with offline contest platform data.")
+    print("✓ CCC Medi-Caps Database seeded with offline contest platform data and Phase 1 assessment.")
+

@@ -150,3 +150,49 @@ export function logout(): void {
   clearToken();
   window.location.href = "/auth";
 }
+
+// ── Assessment APIs (Powered by Interleet Engine) ──────────────────────────
+
+export async function fetchAssessmentData(contestSlug: string): Promise<any> {
+  return apiFetch(`/assessment/${contestSlug}`);
+}
+
+export async function runAssessmentCode(
+  contestSlug: string,
+  payload: { problem_id: string; language: string; code: string; custom_stdin?: string }
+): Promise<any> {
+  return apiFetch(`/assessment/${contestSlug}/run`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function submitAssessmentCode(
+  contestSlug: string,
+  payload: { problem_id: string; language: string; code: string }
+): Promise<any> {
+  return apiFetch(`/assessment/${contestSlug}/submit`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function sendAssessmentTelemetry(
+  contestSlug: string,
+  eventType: string
+): Promise<any> {
+  return apiFetch(`/assessment/${contestSlug}/telemetry`, {
+    method: "POST",
+    body: JSON.stringify({ event_type: eventType }),
+  });
+}
+
+export async function finishAssessmentTest(contestSlug: string): Promise<any> {
+  return apiFetch(`/assessment/${contestSlug}/finish`, {
+    method: "POST",
+  });
+}
+
+export async function fetchAssessmentLeaderboard(contestSlug: string): Promise<any> {
+  return apiFetch(`/assessment/${contestSlug}/leaderboard`);
+}
