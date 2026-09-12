@@ -16,11 +16,11 @@ const EASE = [0.16, 1, 0.3, 1] as const;
 
 const MESH_COLS = 14;
 const MESH_ROWS = 9;
-const STIFFNESS = 0.035;
-const DAMPING = 0.84;
-const DRAG_PULL = 0.38;
-const HOVER_PULL = 0.12;
-const MOUSE_RADIUS = 95;
+const STIFFNESS = 0.038;
+const DAMPING = 0.82;
+const DRAG_PULL = 0.55;
+const HOVER_PULL = 0.22;
+const MOUSE_RADIUS = 110;
 
 type MeshPt = { x: number; y: number; ox: number; oy: number; vx: number; vy: number };
 
@@ -37,10 +37,14 @@ function useElasticMesh(
     let raf = 0;
     let pts: MeshPt[] = [];
 
+    // Use getBoundingClientRect for accurate CSS-computed dimensions.
+    // Call after a rAF so the browser has done its first layout pass.
     const init = () => {
+      const rect = canvas.getBoundingClientRect();
+      const w = rect.width;
+      const h = rect.height;
+      if (w < 1 || h < 1) return; // layout not ready yet, ResizeObserver will retry
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      const w = canvas.offsetWidth;
-      const h = canvas.offsetHeight;
       canvas.width = Math.floor(w * dpr);
       canvas.height = Math.floor(h * dpr);
       pts = [];
@@ -56,6 +60,12 @@ function useElasticMesh(
     const tick = () => {
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      if (pts.length === 0) {
+        // Init not ready — keep ticking and retry
+        raf = requestAnimationFrame(tick);
+        return;
+      }
 
       const m = mouseRef.current;
       const mx = m.x * dpr;
@@ -74,8 +84,8 @@ function useElasticMesh(
         const dist = Math.sqrt(dmx * dmx + dmy * dmy);
         if (dist < r && dist > 0) {
           const force = ((r - dist) / r) * pull;
-          p.vx += (dmx / dist) * force * 4;
-          p.vy += (dmy / dist) * force * 4;
+          p.vx += (dmx / dist) * force * 5.5;
+          p.vy += (dmy / dist) * force * 5.5;
         }
 
         p.vx *= DAMPING;
@@ -86,8 +96,8 @@ function useElasticMesh(
 
       const cols = MESH_COLS + 1;
 
-      // Horizontal lines — warm off-white at very low opacity
-      ctx.lineWidth = 0.75;
+      // Horizontal lines — visible off-white
+      ctx.lineWidth = 1;
       for (let r2 = 0; r2 <= MESH_ROWS; r2++) {
         ctx.beginPath();
         for (let c = 0; c <= MESH_COLS; c++) {
@@ -95,12 +105,12 @@ function useElasticMesh(
           if (c === 0) ctx.moveTo(p.x, p.y);
           else ctx.lineTo(p.x, p.y);
         }
-        ctx.strokeStyle = "rgba(234,234,234,0.10)";
+        ctx.strokeStyle = "rgba(234,234,234,0.20)";
         ctx.stroke();
       }
 
-      // Vertical lines — tiny hint of acid-lime
-      ctx.lineWidth = 0.65;
+      // Vertical lines — subtle acid-lime tint
+      ctx.lineWidth = 0.8;
       for (let c = 0; c <= MESH_COLS; c++) {
         ctx.beginPath();
         for (let r2 = 0; r2 <= MESH_ROWS; r2++) {
@@ -108,17 +118,20 @@ function useElasticMesh(
           if (r2 === 0) ctx.moveTo(p.x, p.y);
           else ctx.lineTo(p.x, p.y);
         }
-        ctx.strokeStyle = "rgba(204,255,0,0.045)";
+        ctx.strokeStyle = "rgba(204,255,0,0.10)";
         ctx.stroke();
       }
 
       raf = requestAnimationFrame(tick);
     };
 
-    init();
-    tick();
+    // Delay initial init until after browser layout pass
+    raf = requestAnimationFrame(() => {
+      init();
+      tick();
+    });
 
-    const ro = new ResizeObserver(init);
+    const ro = new ResizeObserver(() => init());
     ro.observe(canvas);
 
     return () => {
