@@ -25,13 +25,18 @@ from app.services.proof_service import create_trust_proof_data, generate_certifi
 
 async def seed_database(db: AsyncSession):
     """Seed initial offline contests, members, scoreboards, and proofs if empty."""
-    # Check if already seeded
-    existing_contest = await db.execute(select(OfflineContest).limit(1))
-    if existing_contest.scalars().first():
-        return
-
     now = datetime.now(timezone.utc)
 
+    # 1. Contests & members check
+    existing_contest = await db.execute(select(OfflineContest).limit(1))
+    if not existing_contest.scalars().first():
+        await _seed_contests_and_members(db, now)
+
+    # 2. Assessment check
+    await _seed_assessment(db, now)
+
+
+async def _seed_contests_and_members(db: AsyncSession, now: datetime):
     # 1. Members
     members_data = [
         {
@@ -521,6 +526,11 @@ async def seed_database(db: AsyncSession):
     for a in announcements:
         db.add(a)
 
+    await db.commit()
+    print("✓ CCC Medi-Caps Contests and Members seeded.")
+
+
+async def _seed_assessment(db: AsyncSession, now: datetime):
     # 9. Phase 1 Online Screening Assessment
     existing_assessment = await db.execute(select(Assessment).where(Assessment.slug == "chaos-arena-2026"))
     if not existing_assessment.scalars().first():
