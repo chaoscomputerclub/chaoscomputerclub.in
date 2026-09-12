@@ -142,183 +142,200 @@ function ElasticTelemetryCanvas() {
       ctx.setTransform(s.dpr, 0, 0, s.dpr, 0, 0);
       ctx.clearRect(0, 0, cw, ch);
 
-      // Dark background
-      ctx.fillStyle = "#0d0d0d";
+      // Panel background — matches bg-surface/50
+      ctx.fillStyle = "#111111";
       ctx.fillRect(0, 0, cw, ch);
 
       if (!s.pts.length) return;
 
-      const pad  = cw * 0.065;
-      const padT = ch * 0.06;
+      const pad  = cw * 0.06;
+      const padT = ch * 0.055;
 
-      /* ─ HEADER ───────────────────────────────────────────────────── */
+      /* ─ CORNER CHIP ─────────────────────────────────────────────────
+         Drawn first at canvas origin (never warped — always top-left)  */
+      ctx.fillStyle = "#ccff00";
+      ctx.fillRect(0, 0, 94, 20);
+      ctx.font = "700 7.5px 'IBM Plex Mono', monospace";
+      ctx.fillStyle = "#080808";
       ctx.textAlign = "left";
+      ctx.fillText("CHOS // COMMONS", 6, 13);
 
-      const [dotX, dotY] = w(pad, padT + 14, cw, ch);
-      ctx.font = "700 9px 'IBM Plex Mono', monospace";
+      /* ─ HEADER ─────────────────────────────────────────────────────── */
+      ctx.textAlign = "left";
+      const headerY = padT + 30;
+
+      const [dotX, dotY] = w(pad, headerY, cw, ch);
+      ctx.font = "600 9px 'IBM Plex Mono', monospace";
       ctx.fillStyle = "#ccff00";
       ctx.fillText("■", dotX, dotY);
 
-      const [hdX, hdY] = w(pad + 14, padT + 14, cw, ch);
+      const [hdX, hdY] = w(pad + 13, headerY, cw, ch);
+      ctx.font = "600 9px 'IBM Plex Mono', monospace";
       ctx.fillStyle = "#eaeaea";
       ctx.fillText("CONTRIBUTION TELEMETRY", hdX, hdY);
 
-      const [lcX, lcY] = w(cw - pad - 92, padT + 14, cw, ch);
+      const [lcX, lcY] = w(cw - pad - 90, headerY, cw, ch);
       ctx.font = "500 7.5px 'IBM Plex Mono', monospace";
       ctx.fillStyle = "#ccff00";
       ctx.fillText("[ LIVING COMMONS ]", lcX, lcY);
 
       // Stats row
-      const [sX, sY] = w(pad, padT + 29, cw, ch);
+      const [sX, sY] = w(pad, headerY + 14, cw, ch);
       ctx.font = "400 7.5px 'IBM Plex Mono', monospace";
-      ctx.fillStyle = "rgba(234,234,234,0.36)";
+      ctx.fillStyle = "rgba(234,234,234,0.34)";
       ctx.fillText("247 COMMITS  ·  14 CONTRIBUTORS  ·  ∞ STREAK", sX, sY);
 
-      // Divider
-      const [d0x, d0y] = w(pad, padT + 38, cw, ch);
-      const [d1x, d1y] = w(cw-pad, padT + 38, cw, ch);
+      // Header divider
+      const divY = headerY + 24;
+      const [d0x, d0y] = w(pad, divY, cw, ch);
+      const [d1x, d1y] = w(cw - pad, divY, cw, ch);
       ctx.beginPath(); ctx.moveTo(d0x, d0y); ctx.lineTo(d1x, d1y);
-      ctx.strokeStyle = "rgba(234,234,234,0.10)"; ctx.lineWidth = 0.5; ctx.stroke();
+      ctx.strokeStyle = "rgba(234,234,234,0.12)";
+      ctx.lineWidth = 0.5; ctx.stroke();
 
-      /* ─ HEATMAP ──────────────────────────────────────────────────── */
-      const hmY = padT + 52;
-      const [hmLx, hmLy] = w(pad, hmY, cw, ch);
+      /* ─ HEATMAP ─────────────────────────────────────────────────────── */
+      const hmLabelY = divY + 16;
+      const [hmLx, hmLy] = w(pad, hmLabelY, cw, ch);
       ctx.font = "500 7px 'IBM Plex Mono', monospace";
-      ctx.fillStyle = "rgba(234,234,234,0.26)";
+      ctx.fillStyle = "rgba(234,234,234,0.28)";
       ctx.fillText("PEER ACTIVITY MATRIX", hmLx, hmLy);
-
-      const [hmRx, hmRy] = w(cw - pad - 86, hmY, cw, ch);
+      const [hmRx, hmRy] = w(cw - pad - 85, hmLabelY, cw, ch);
       ctx.fillText("7 × 12 COMMIT GRAPH", hmRx, hmRy);
 
-      const hmLeft = pad, hmTop = hmY + 9;
-      const hmW = cw - pad*2, hmH = ch * 0.295;
+      // Heatmap inset background
+      const hmLeft = pad, hmTop = hmLabelY + 7;
+      const hmW = cw - pad * 2, hmH = ch * 0.28;
+      const [hbx, hby] = w(hmLeft, hmTop, cw, ch);
+      const [hbx2, hby2] = w(hmLeft + hmW, hmTop + hmH, cw, ch);
+      ctx.fillStyle = "rgba(10,10,10,0.60)";
+      // approximate inset box as warped quad
+      const [hbtlx,hbtly] = w(hmLeft,         hmTop,       cw, ch);
+      const [hbtrx,hbtry] = w(hmLeft + hmW,   hmTop,       cw, ch);
+      const [hbbrx,hbbry] = w(hmLeft + hmW,   hmTop + hmH, cw, ch);
+      const [hbblx,hbbly] = w(hmLeft,         hmTop + hmH, cw, ch);
+      ctx.beginPath();
+      ctx.moveTo(hbtlx,hbtly); ctx.lineTo(hbtrx,hbtry);
+      ctx.lineTo(hbbrx,hbbry); ctx.lineTo(hbblx,hbbly);
+      ctx.closePath();
+      ctx.fillStyle = "rgba(8,8,8,0.55)"; ctx.fill();
+      ctx.strokeStyle = "rgba(234,234,234,0.10)";
+      ctx.lineWidth = 0.5; ctx.stroke();
+
       const HCOLS = 12, HROWS = 7;
-      const cellW = hmW/HCOLS, cellH = hmH/HROWS;
+      const cellW = hmW / HCOLS, cellH = hmH / HROWS;
+      const cellPad = 2.5;
 
       CONTRIBUTION_CELLS.forEach((cell, i) => {
         const col = i % HCOLS, row = Math.floor(i / HCOLS);
-        const x0 = hmLeft + col*cellW + 1.5;
-        const y0 = hmTop  + row*cellH + 1.5;
-        const x1 = x0 + cellW - 3;
-        const y1 = y0 + cellH - 3;
+        const x0 = hmLeft + col * cellW + cellPad;
+        const y0 = hmTop  + row * cellH + cellPad;
+        const x1 = x0 + cellW - cellPad * 2;
+        const y1 = y0 + cellH - cellPad * 2;
 
-        const [tlx,tly] = w(x0, y0, cw, ch);
-        const [trx,try_] = w(x1, y0, cw, ch);
-        const [brx,bry] = w(x1, y1, cw, ch);
-        const [blx,bly] = w(x0, y1, cw, ch);
+        const [tlx, tly]  = w(x0, y0, cw, ch);
+        const [trx, try_] = w(x1, y0, cw, ch);
+        const [brx, bry]  = w(x1, y1, cw, ch);
+        const [blx, bly]  = w(x0, y1, cw, ch);
 
-        if (cell.isAccent)        ctx.fillStyle = "#ccff00";
-        else if (cell.isHigh)     ctx.fillStyle = "rgba(234,234,234,0.60)";
-        else if (cell.activity>3) ctx.fillStyle = "rgba(234,234,234,0.18)";
-        else                      ctx.fillStyle = "rgba(234,234,234,0.06)";
+        if (cell.isAccent)         ctx.fillStyle = "#ccff00";
+        else if (cell.isHigh)      ctx.fillStyle = "rgba(234,234,234,0.68)";
+        else if (cell.activity > 3) ctx.fillStyle = "rgba(234,234,234,0.22)";
+        else                        ctx.fillStyle = "rgba(234,234,234,0.07)";
 
         ctx.beginPath();
-        ctx.moveTo(tlx,tly); ctx.lineTo(trx,try_);
-        ctx.lineTo(brx,bry); ctx.lineTo(blx,bly);
+        ctx.moveTo(tlx, tly); ctx.lineTo(trx, try_);
+        ctx.lineTo(brx, bry); ctx.lineTo(blx, bly);
         ctx.closePath(); ctx.fill();
       });
 
-      // Legend
+      // Heatmap legend
       const legY = hmTop + hmH + 9;
       const [legLx, legLy] = w(pad, legY, cw, ch);
       ctx.font = "400 6.5px 'IBM Plex Mono', monospace";
       ctx.fillStyle = "rgba(234,234,234,0.22)";
       ctx.fillText("LESS", legLx, legLy);
-      ["rgba(234,234,234,0.06)","rgba(234,234,234,0.18)","rgba(234,234,234,0.60)","#ccff00"].forEach((c2,i) => {
-        const [sx2,sy2] = w(pad + 32 + i*9, legY - 5, cw, ch);
-        ctx.fillStyle = c2; ctx.fillRect(sx2, sy2, 7, 7);
+      ["rgba(234,234,234,0.07)","rgba(234,234,234,0.22)","rgba(234,234,234,0.68)","#ccff00"].forEach((col, i) => {
+        const [sx2, sy2] = w(pad + 30 + i * 9, legY - 5.5, cw, ch);
+        ctx.fillStyle = col; ctx.fillRect(sx2, sy2, 7, 7);
       });
-      const [legRx, legRy] = w(pad + 32 + 4*9 + 6, legY, cw, ch);
-      ctx.fillStyle = "rgba(234,234,234,0.22)"; ctx.fillText("MORE", legRx, legRy);
+      const [legRx, legRy] = w(pad + 30 + 4*9 + 4, legY, cw, ch);
+      ctx.fillStyle = "rgba(234,234,234,0.22)";
+      ctx.fillText("MORE", legRx, legRy);
 
-      /* ─ PROTOCOL LIST ────────────────────────────────────────────── */
-      const protoTop = hmTop + hmH + 27;
-      const [pLx,pLy] = w(pad, protoTop, cw, ch);
+      /* ─ PROTOCOL DIVIDER + LABEL ────────────────────────────────────── */
+      const protoDivY = legY + 14;
+      const [pd0x, pd0y] = w(pad, protoDivY, cw, ch);
+      const [pd1x, pd1y] = w(cw - pad, protoDivY, cw, ch);
+      ctx.beginPath(); ctx.moveTo(pd0x, pd0y); ctx.lineTo(pd1x, pd1y);
+      ctx.strokeStyle = "rgba(234,234,234,0.10)";
+      ctx.lineWidth = 0.5; ctx.stroke();
+
+      const protoLabelY = protoDivY + 12;
+      const [pLx, pLy] = w(pad, protoLabelY, cw, ch);
       ctx.font = "500 7px 'IBM Plex Mono', monospace";
       ctx.fillStyle = "rgba(234,234,234,0.26)";
       ctx.fillText("COMMONS PROTOCOL", pLx, pLy);
 
+      /* ─ PROTOCOL ROWS ──────────────────────────────────────────────── */
       const steps = [
-        { step:"01", label:"LEARN",      desc:"Study source code like classical literature." },
-        { step:"02", label:"BUILD",      desc:"Ship under real clock pressure." },
-        { step:"03", label:"CONTRIBUTE", desc:"Fix the bug. Submit the patch upstream." },
-        { step:"04", label:"SHARE",      desc:"Leave the door unlocked for whoever comes next." },
+        { step: "01", label: "LEARN",      desc: "Study source code like classical literature." },
+        { step: "02", label: "BUILD",      desc: "Ship under real clock pressure." },
+        { step: "03", label: "CONTRIBUTE", desc: "Fix the bug. Submit the patch upstream." },
+        { step: "04", label: "SHARE",      desc: "Leave the door unlocked for whoever comes next." },
       ];
-      const avail  = ch - protoTop - 30;
-      const rowGap = avail / (steps.length + 0.5);
+      const protoStartY = protoLabelY + 10;
+      const footerTopY  = ch - 30;
+      const rowH = (footerTopY - protoStartY) / steps.length;
 
       steps.forEach((step, i) => {
-        const ry = protoTop + (i+1)*rowGap - 6;
-        // row separator
-        const [sp0x,sp0y] = w(pad, ry - rowGap + 10, cw, ch);
-        const [sp1x,sp1y] = w(cw-pad, ry - rowGap + 10, cw, ch);
-        ctx.beginPath(); ctx.moveTo(sp0x,sp0y); ctx.lineTo(sp1x,sp1y);
-        ctx.strokeStyle = "rgba(234,234,234,0.07)"; ctx.lineWidth = 0.5; ctx.stroke();
+        const sepY = protoStartY + i * rowH;
+        // Row separator
+        const [sp0x, sp0y] = w(pad, sepY, cw, ch);
+        const [sp1x, sp1y] = w(cw - pad, sepY, cw, ch);
+        ctx.beginPath(); ctx.moveTo(sp0x, sp0y); ctx.lineTo(sp1x, sp1y);
+        ctx.strokeStyle = "rgba(234,234,234,0.08)";
+        ctx.lineWidth = 0.5; ctx.stroke();
 
-        const [stX,stY] = w(pad, ry, cw, ch);
-        ctx.font = "700 8px 'IBM Plex Mono', monospace";
+        const textY = sepY + rowH * 0.58;
+
+        const [stX, stY] = w(pad, textY, cw, ch);
+        ctx.font = "700 8.5px 'IBM Plex Mono', monospace";
         ctx.fillStyle = "#ccff00";
         ctx.fillText(step.step, stX, stY);
 
-        const [laX,laY] = w(pad + cw*0.09, ry, cw, ch);
+        const [laX, laY] = w(pad + cw * 0.085, textY, cw, ch);
+        ctx.font = "700 8.5px 'IBM Plex Mono', monospace";
         ctx.fillStyle = "#eaeaea";
         ctx.fillText(step.label, laX, laY);
 
-        const [deX,deY] = w(pad + cw*0.24, ry, cw, ch);
-        ctx.font = "400 7.5px 'IBM Plex Mono', monospace";
-        ctx.fillStyle = "rgba(234,234,234,0.38)";
+        const [deX, deY] = w(pad + cw * 0.23, textY, cw, ch);
+        ctx.font = "400 8px 'IBM Plex Mono', monospace";
+        ctx.fillStyle = "rgba(234,234,234,0.40)";
         ctx.fillText(step.desc, deX, deY);
       });
 
-      /* ─ FOOTER ───────────────────────────────────────────────────── */
-      const [ftX,ftY] = w(pad, ch - 14, cw, ch);
+      /* ─ FOOTER ──────────────────────────────────────────────────────── */
+      const ftSepY = footerTopY;
+      const [fs0x, fs0y] = w(pad, ftSepY, cw, ch);
+      const [fs1x, fs1y] = w(cw - pad, ftSepY, cw, ch);
+      ctx.beginPath(); ctx.moveTo(fs0x, fs0y); ctx.lineTo(fs1x, fs1y);
+      ctx.strokeStyle = "rgba(234,234,234,0.10)";
+      ctx.lineWidth = 0.5; ctx.stroke();
+
+      const ftTextY = ftSepY + 13;
+      const [ftX, ftY] = w(pad, ftTextY, cw, ch);
       ctx.font = "400 7px 'IBM Plex Mono', monospace";
-      ctx.fillStyle = "rgba(234,234,234,0.15)";
-      ctx.fillText("DRAG TO DISTORT  ·  ALL ARTIFACTS OPEN BY DEFAULT", ftX, ftY);
-      const [ghX,ghY] = w(cw - pad - 68, ch - 14, cw, ch);
-      ctx.fillStyle = "rgba(234,234,234,0.30)";
-      ctx.fillText("[ GITHUB → ]", ghX, ghY);
+      ctx.fillStyle = "rgba(234,234,234,0.18)";
+      ctx.fillText("drag to distort  ·  all artifacts open", ftX, ftY);
 
-      /* ─ ELASTIC MESH GRID ────────────────────────────────────────── */
-      const W = MESH_COLS + 1;
-      ctx.lineWidth = 0.9;
+      const [ghX, ghY] = w(cw - pad - 70, ftTextY, cw, ch);
+      ctx.fillStyle = "rgba(234,234,234,0.38)";
+      ctx.fillText("[ GitHub → ]", ghX, ghY);
 
-      for (let r2 = 0; r2 <= MESH_ROWS; r2++) {
-        ctx.beginPath();
-        for (let c = 0; c <= MESH_COLS; c++) {
-          const p = s.pts[r2*W+c];
-          c === 0 ? ctx.moveTo(p.x,p.y) : ctx.lineTo(p.x,p.y);
-        }
-        ctx.strokeStyle = "rgba(234,234,234,0.14)"; ctx.stroke();
-      }
-      ctx.lineWidth = 0.7;
-      for (let c = 0; c <= MESH_COLS; c++) {
-        ctx.beginPath();
-        for (let r2 = 0; r2 <= MESH_ROWS; r2++) {
-          const p = s.pts[r2*W+c];
-          r2 === 0 ? ctx.moveTo(p.x,p.y) : ctx.lineTo(p.x,p.y);
-        }
-        ctx.strokeStyle = "rgba(204,255,0,0.08)"; ctx.stroke();
-      }
-      // Vertex dots
-      for (const p of s.pts) {
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, 1, 0, Math.PI*2);
-        ctx.fillStyle = "rgba(234,234,234,0.20)"; ctx.fill();
-      }
-
-      /* ─ CORNER CHIP (acid-lime, drawn on top of everything) ──────── */
-      ctx.fillStyle = "#ccff00";
-      ctx.fillRect(0, 0, 88, 18);
-      ctx.font = "700 7.5px 'IBM Plex Mono', monospace";
-      ctx.fillStyle = "#080808";
-      ctx.textAlign = "left";
-      ctx.fillText("CHOS // COMMONS", 5, 12);
-
-      /* ─ OUTER BORDER ─────────────────────────────────────────────── */
-      ctx.strokeStyle = "rgba(234,234,234,0.12)";
+      /* ─ OUTER BORDER ────────────────────────────────────────────────── */
+      ctx.strokeStyle = "rgba(234,234,234,0.10)";
       ctx.lineWidth = 1;
-      ctx.strokeRect(0.5, 0.5, cw-1, ch-1);
+      ctx.strokeRect(0.5, 0.5, cw - 1, ch - 1);
     };
 
     let raf = 0;
