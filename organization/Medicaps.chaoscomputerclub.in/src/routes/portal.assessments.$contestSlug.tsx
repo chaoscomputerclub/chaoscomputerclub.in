@@ -178,17 +178,37 @@ function AssessmentStudio() {
   }
 
   if (error) {
+    const isAuthErr =
+      error.toLowerCase().includes("authenticated") ||
+      error.toLowerCase().includes("credential") ||
+      error.toLowerCase().includes("token") ||
+      error.toLowerCase().includes("unauthorized") ||
+      error.toLowerCase().includes("session");
     return (
       <div className="flex h-screen flex-col items-center justify-center gap-4 bg-[#070707] text-[#eee] font-mono p-6 text-center">
         <ShieldAlert size={44} className="text-destructive" />
-        <h2 className="text-lg font-bold text-white">Assessment Round Unavailable</h2>
-        <p className="text-sm text-[#888] max-w-md">{error}</p>
+        <h2 className="text-lg font-bold text-white">
+          {isAuthErr ? "Candidate Authentication Required" : "Assessment Round Unavailable"}
+        </h2>
+        <p className="text-sm text-[#888] max-w-md">
+          {isAuthErr
+            ? "Sign in with your Medi-Caps account to enter the proctored assessment."
+            : error}
+        </p>
         <div className="flex items-center gap-3 mt-2 flex-wrap justify-center">
-          <Link to="/portal/assessments/$contestSlug" params={{ contestSlug: "chaos-arena-2026" }}>
-            <Button className="bg-accent text-accent-foreground font-mono text-xs hover:bg-accent/90">
-              Open Chaos Arena '26 Screening
-            </Button>
-          </Link>
+          {isAuthErr ? (
+            <a href={`/auth?redirect=/portal/assessments/${contestSlug}`}>
+              <Button className="bg-accent text-accent-foreground font-mono text-xs hover:bg-accent/90">
+                Sign In to Start Assessment
+              </Button>
+            </a>
+          ) : (
+            <Link to="/portal/assessments/$contestSlug" params={{ contestSlug: "chaos-arena-2026" }}>
+              <Button className="bg-accent text-accent-foreground font-mono text-xs hover:bg-accent/90">
+                Open Chaos Arena '26 Screening
+              </Button>
+            </Link>
+          )}
           <Link to="/portal/contests">
             <Button variant="outline" className="font-mono text-xs border-[#333] hover:bg-[#181818]">
               Return to Contests

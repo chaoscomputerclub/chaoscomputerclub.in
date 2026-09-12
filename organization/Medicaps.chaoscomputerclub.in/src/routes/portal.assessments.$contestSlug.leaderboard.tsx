@@ -6,7 +6,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { ArrowLeft, Award, CheckCircle, QrCode, ShieldCheck, Trophy, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { fetchAssessmentLeaderboard } from "@/lib/auth";
+import { fetchAssessmentLeaderboard, getApiBase, getToken } from "@/lib/auth";
 
 export const Route = createFileRoute("/portal/assessments/$contestSlug/leaderboard")({
   head: () => ({
@@ -41,8 +41,14 @@ function AssessmentLeaderboardView() {
     setQualifying(true);
     setMessage(null);
     try {
-      const res = await fetch(`/api/assessment/${contestSlug}/qualify-top30`, {
+      const apiBase = getApiBase();
+      const token = getToken();
+      const res = await fetch(`${apiBase}/assessment/${contestSlug}/qualify-top30`, {
         method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
       });
       const json = await res.json();
       if (json.success) {

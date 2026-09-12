@@ -4,11 +4,31 @@
  */
 
 import { queryOptions } from "@tanstack/react-query";
+import { getToken, getApiBase } from "@/lib/auth";
 import {
   getPublicPortalData,
   getMemberProfileData,
   getUniversityLeaderboardData,
 } from "./portal.functions";
+
+async function fetchFullProfileData() {
+  if (typeof window !== "undefined") {
+    const token = getToken();
+    if (token) {
+      const apiBase = getApiBase();
+      const res = await fetch(`${apiBase}/auth/profile/full`, {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      }).catch(() => null);
+      if (res && res.ok) {
+        return await res.json();
+      }
+    }
+  }
+  return await getMemberProfileData();
+}
 import type {
   AnnouncementFeedItem,
   ContestProblem,
@@ -106,7 +126,7 @@ export const portalQueries = {
   member: () =>
     queryOptions({
       queryKey: ["portal", "member"],
-      queryFn: async () => (await getMemberProfileData()).member,
+      queryFn: async () => (await fetchFullProfileData()).member,
     }),
   contests: () =>
     queryOptions({
@@ -137,21 +157,21 @@ export const portalQueries = {
   ratingHistory: () =>
     queryOptions({
       queryKey: ["portal", "rating-history"],
-      queryFn: async () => (await getMemberProfileData()).ratingHistory,
+      queryFn: async () => (await fetchFullProfileData()).ratingHistory,
     }),
   recentBattles: () =>
     queryOptions({
       queryKey: ["portal", "recent-battles"],
-      queryFn: async () => (await getMemberProfileData()).recentBattles,
+      queryFn: async () => (await fetchFullProfileData()).recentBattles,
     }),
   campusPass: () =>
     queryOptions({
       queryKey: ["portal", "campus-pass"],
-      queryFn: async () => (await getMemberProfileData()).campusPass,
+      queryFn: async () => (await fetchFullProfileData()).campusPass,
     }),
   achievements: () =>
     queryOptions({
       queryKey: ["portal", "achievements"],
-      queryFn: async () => (await getMemberProfileData()).achievements,
+      queryFn: async () => (await fetchFullProfileData()).achievements,
     }),
 };
