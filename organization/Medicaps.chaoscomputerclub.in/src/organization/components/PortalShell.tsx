@@ -35,7 +35,10 @@ export function PortalShell() {
 
   useEffect(() => {
     const token = getToken();
-    if (!token) return;
+    if (!token) {
+      window.location.href = "/auth";
+      return;
+    }
     if (!member) {
       dispatch(fetchCurrentUserThunk());
     }
@@ -114,7 +117,7 @@ export function PortalShell() {
         <div className="sidebar-user">
           <div className="avatar-code">{initials}</div>
           <div>
-            <strong>{member?.handle ?? "Loading…"}</strong>
+            <strong>{member?.handle ?? (typeof window !== "undefined" && !getToken() ? "Sign in required" : "Loading…")}</strong>
             <span>
               {member ? `${member.rating} · ${member.department ?? "Member"}` : ""}
             </span>

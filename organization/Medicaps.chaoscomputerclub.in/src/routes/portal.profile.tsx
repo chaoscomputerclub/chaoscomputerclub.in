@@ -7,8 +7,30 @@ import { RatingChart } from "@/organization/components/RatingChart";
 import { Metric, SectionHeader, TierBadge } from "@/organization/components/ui";
 import { portalQueries } from "@/organization/data/queries";
 const qs=[portalQueries.member(),portalQueries.ratingHistory(),portalQueries.recentBattles(),portalQueries.campusPass(),portalQueries.proofs(),portalQueries.achievements()] as const;
-export const Route=createFileRoute("/portal/profile")({head:()=>({meta:[{title:"Competitive Profile — CCC Medi-Caps"},{name:"description",content:"Personal rating, offline contest history, campus pass and verified result proofs."},{property:"og:title",content:"Competitive Profile — CCC Medi-Caps"},{property:"og:description",content:"A member's verified offline competitive programming record."},{property:"og:type",content:"profile"},{name:"twitter:card",content:"summary_large_image"}]}),loader:({context})=>Promise.all([context.queryClient.ensureQueryData(qs[0]),context.queryClient.ensureQueryData(qs[1]),context.queryClient.ensureQueryData(qs[2]),context.queryClient.ensureQueryData(qs[3]),context.queryClient.ensureQueryData(qs[4]),context.queryClient.ensureQueryData(qs[5])]),component:Profile});
-function Profile(){const {data:m}=useSuspenseQuery(qs[0]);const {data:history}=useSuspenseQuery(qs[1]);const {data:battles}=useSuspenseQuery(qs[2]);const {data:pass}=useSuspenseQuery(qs[3]);const {data:proofs}=useSuspenseQuery(qs[4]);const {data:achievements}=useSuspenseQuery(qs[5]);
+import { redirect } from "@tanstack/react-router";
+import { isAuthenticated } from "@/lib/auth";
+
+export const Route=createFileRoute("/portal/profile")({
+  beforeLoad: () => {
+    if (typeof window !== "undefined" && !isAuthenticated()) {
+      throw redirect({ to: "/auth" });
+    }
+  },
+  head:()=>({meta:[{title:"Competitive Profile — CCC Medi-Caps"},{name:"description",content:"Personal rating, offline contest history, campus pass and verified result proofs."},{property:"og:title",content:"Competitive Profile — CCC Medi-Caps"},{property:"og:description",content:"A member's verified offline competitive programming record."},{property:"og:type",content:"profile"},{name:"twitter:card",content:"summary_large_image"}]}),
+  loader:({context})=>{
+    if (typeof window !== "undefined" && !isAuthenticated()) {
+      throw redirect({ to: "/auth" });
+    }
+    return Promise.all([context.queryClient.ensureQueryData(qs[0]),context.queryClient.ensureQueryData(qs[1]),context.queryClient.ensureQueryData(qs[2]),context.queryClient.ensureQueryData(qs[3]),context.queryClient.ensureQueryData(qs[4]),context.queryClient.ensureQueryData(qs[5])]);
+  },
+  component:Profile
+});
+function Profile(){
+  if (typeof window !== "undefined" && !isAuthenticated()) {
+    window.location.href = "/auth";
+    return null;
+  }
+  const {data:m}=useSuspenseQuery(qs[0]);const {data:history}=useSuspenseQuery(qs[1]);const {data:battles}=useSuspenseQuery(qs[2]);const {data:pass}=useSuspenseQuery(qs[3]);const {data:proofs}=useSuspenseQuery(qs[4]);const {data:achievements}=useSuspenseQuery(qs[5]);
 const initials = m.full_name
   ? m.full_name.split(" ").map((w: string) => w[0]).filter(Boolean).slice(0, 2).join("").toUpperCase()
   : m.handle

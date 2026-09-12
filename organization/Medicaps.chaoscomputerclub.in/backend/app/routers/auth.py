@@ -525,55 +525,13 @@ async def complete_onboarding(
 
 @router.get("/profile/full")
 async def get_full_profile(
-    current_member: Optional[MemberProfile] = Depends(get_current_member_optional),
+    current_member: MemberProfile = Depends(get_current_member),
     db: AsyncSession = Depends(get_db),
 ):
     """
-    Return comprehensive competitive profile data strictly from the database.
-    No client trust: everything is calculated on-the-fly from PostgreSQL tables.
+    Return comprehensive competitive profile data strictly for the authenticated member.
+    Guest members are strictly forbidden. Only authenticated users allowed.
     """
-    if not current_member:
-        res = await db.execute(select(MemberProfile).order_by(MemberProfile.rating.desc()).limit(1))
-        current_member = res.scalars().first()
-
-    if not current_member:
-        return {
-            "member": {
-                "id": "unregistered",
-                "handle": "guest",
-                "full_name": "Guest Member",
-                "email": "guest@medicaps.ac.in",
-                "prn": "N/A",
-                "department": "CSE",
-                "batch": "2024-28",
-                "rating": 1200,
-                "peak_rating": 1200,
-                "peak_contest": "No Contests",
-                "university_rank": 0,
-                "active_members": 0,
-                "attendance_count": 0,
-                "attendance_total": 0,
-                "tier": "1★ Explorer",
-                "is_core_member": False,
-                "podiums": 0,
-                "streak": 0,
-            },
-            "ratingHistory": [],
-            "recentBattles": [],
-            "campusPass": {
-                "pass_code": "NONE",
-                "member_name": "Guest",
-                "handle": "guest",
-                "prn_hash": "PRN-0000",
-                "contest_title": "No Active Pass",
-                "seat": "Unassigned",
-                "venue": "N/A",
-                "check_in_opens_at": now_utc().isoformat(),
-                "status": "expired",
-            },
-            "proofs": [],
-            "achievements": [],
-        }
 
     # 1. Rank & Active Counts
     rank_res = await db.execute(

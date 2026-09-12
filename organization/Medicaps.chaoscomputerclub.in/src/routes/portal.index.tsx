@@ -15,7 +15,15 @@ const queries = [
   portalQueries.campusPass(),
 ] as const;
 
+import { redirect } from "@tanstack/react-router";
+import { isAuthenticated } from "@/lib/auth";
+
 export const Route = createFileRoute("/portal/")({
+  beforeLoad: () => {
+    if (typeof window !== "undefined" && !isAuthenticated()) {
+      throw redirect({ to: "/auth" });
+    }
+  },
   head: () => ({
     meta: [
       { title: "Offline Contest Operations — CCC Medi-Caps" },
@@ -41,6 +49,10 @@ export const Route = createFileRoute("/portal/")({
 });
 
 function Dashboard() {
+  if (typeof window !== "undefined" && !isAuthenticated()) {
+    window.location.href = "/auth";
+    return null;
+  }
   const { data: member } = useSuspenseQuery(queries[0]);
   const { data: contests } = useSuspenseQuery(queries[1]);
   const { data: feed } = useSuspenseQuery(queries[2]);

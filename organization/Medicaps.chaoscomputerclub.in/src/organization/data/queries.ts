@@ -14,17 +14,23 @@ import {
 async function fetchFullProfileData() {
   if (typeof window !== "undefined") {
     const token = getToken();
-    if (token) {
-      const apiBase = getApiBase();
-      const res = await fetch(`${apiBase}/auth/profile/full`, {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      }).catch(() => null);
-      if (res && res.ok) {
-        return await res.json();
-      }
+    if (!token) {
+      window.location.href = "/auth";
+      throw new Error("Authentication required. Guest members strictly not allowed.");
+    }
+    const apiBase = getApiBase();
+    const res = await fetch(`${apiBase}/auth/profile/full`, {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    }).catch(() => null);
+    if (res && res.ok) {
+      return await res.json();
+    }
+    if (res && (res.status === 401 || res.status === 403)) {
+      window.location.href = "/auth";
+      throw new Error("Session expired. Please sign in again.");
     }
   }
   return await getMemberProfileData();

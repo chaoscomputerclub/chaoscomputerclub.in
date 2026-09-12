@@ -94,44 +94,8 @@ export const getMemberProfileData = createServerFn({ method: "GET" }).handler(as
     };
   }
 
-  // If backend was unreachable, return neutral empty structure (zero mock data)
-  return {
-    member: {
-      id: "anonymous",
-      handle: "guest",
-      full_name: "Guest Member",
-      email: "guest@medicaps.ac.in",
-      prn: "0827CS231000",
-      department: "CSE" as const,
-      batch: "2023-27" as const,
-      rating: 1200,
-      peak_rating: 1200,
-      peak_contest: "No Contests",
-      university_rank: 0,
-      active_members: 0,
-      attendance_count: 0,
-      attendance_total: 10,
-      tier: "1★ Explorer" as const,
-      is_core_member: false,
-      podiums: 0,
-      streak: 0,
-    },
-    ratingHistory: [],
-    recentBattles: [],
-    campusPass: {
-      pass_code: "NONE",
-      member_name: "Guest",
-      handle: "guest",
-      prn_hash: "PRN-0000",
-      contest_title: "No Active Pass",
-      seat: "Unassigned",
-      venue: "Main Auditorium",
-      check_in_opens_at: new Date().toISOString(),
-      status: "expired" as const,
-    },
-    proofs: [],
-    achievements: [],
-  };
+  // Guest members strictly not allowed
+  throw new Error("UNAUTHORIZED");
 });
 
 /**
