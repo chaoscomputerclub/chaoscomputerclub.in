@@ -376,15 +376,3 @@ If you already have a theme file from another project (ShareXpress/Interleet) yo
 
 Consider specifying the React Bits component now, since the whole page's motion vocabulary should extend from it — the agent can't "go beyond" without knowing what it's extending.
 
-If you want a live/rotating "Loop" section (Explore → Build → Compete → Fail → Learn → Share → Repeat), it's worth deciding up front whether that's a scroll-driven animation or a lightweight looping motion — that decision changes the component structure.
-
-react + vite tsx + tailwind + shadcn + many more.....
-
-This project was built with [Lovable](https://lovable.dev).
-
-## Build with Lovable
-
-Continue developing this project in the [Lovable editor](https://lovable.dev/projects/dc68bde2-f25b-4f93-8c66-7dd2e4011e89).
-
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: every change made in Lovable is committed straight to this repository.
