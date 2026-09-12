@@ -89,6 +89,8 @@ class Settings(BaseSettings):
         "http://127.0.0.1:3000",
         "https://medicaps.chaoscomputerclub.in",
         "https://chaoscomputerclub.in",
+        "https://www.chaoscomputerclub.in",
+        "https://api.medicaps.chaoscomputerclub.in",
     ]
 
     class Config:
