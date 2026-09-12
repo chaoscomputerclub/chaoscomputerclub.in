@@ -205,6 +205,8 @@ export function HeaderNav() {
           <div className="hidden xl:flex items-center shrink-0">
             <a
               href={medicapsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
               className="inline-flex h-10 items-center justify-center rounded-none bg-accent px-5 font-mono text-[0.6rem] tracking-[0.18em] text-accent-foreground uppercase font-semibold transition-colors hover:bg-accent/85 cursor-pointer select-none"
             >
               [ Join us → ]
@@ -233,6 +235,8 @@ export function HeaderNav() {
           footerContent={(closeMenu) => (
             <a
               href={medicapsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
               onClick={() => {
                 closeMenu?.();
               }}
