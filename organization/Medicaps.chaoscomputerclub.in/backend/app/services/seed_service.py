@@ -531,14 +531,21 @@ async def _seed_contests_and_members(db: AsyncSession, now: datetime):
 
 
 async def _seed_assessment(db: AsyncSession, now: datetime):
-    # 9. Phase 1 Online Screening Assessment
-    existing_assessment = await db.execute(select(Assessment).where(Assessment.slug == "chaos-arena-2026"))
-    if not existing_assessment.scalars().first():
+    # 9. Phase 1 Online Screening Assessment for all active contests
+    contests_meta = [
+        ("chaos-arena-2026", "Chaos Arena '26 — Phase 1 Online Screening", "Official Phase 1 online screening round. Top 30 qualifiers receive digital campus access QR passes for the physical lab final."),
+        ("winter-algothon-2026", "Winter Algothon '26 — Online Qualifier", "Online qualification screening for 200-station LAN Hack Battle in Main Auditorium."),
+        ("fresher-induction-2026", "Fresher Induction '26 — Foundational Assessment", "Screening round testing linear structures, binary search, and math foundations."),
+    ]
+    for c_slug, c_title, c_summary in contests_meta:
+        existing_assessment = await db.execute(select(Assessment).where(Assessment.slug == c_slug))
+        if existing_assessment.scalars().first():
+            continue
         assessment = Assessment(
             id=str(uuid.uuid4()),
-            slug="chaos-arena-2026",
-            title="Chaos Arena '26 — Phase 1 Online Screening",
-            summary="Official Phase 1 online screening round. Top 30 qualifiers receive digital campus access QR passes for the physical lab final.",
+            slug=c_slug,
+            title=c_title,
+            summary=c_summary,
             duration_minutes=90,
             starts_at=now - timedelta(days=2),
             ends_at=now + timedelta(days=14),
@@ -599,7 +606,7 @@ async def _seed_assessment(db: AsyncSession, now: datetime):
             },
             sample_testcases=[
                 {"stdin": "5 6\n4 2 2 6 4", "expected_output": "4", "explanation": "Subarrays: [4, 2], [4, 2, 2, 6, 4], [2, 2, 6], [6]"},
-                {"stdin": "4 1\n5 6 7 8", "expected_output": "2", "explanation": "Subarrays: [7], [5, 6, 7, 8]"}
+                {"stdin": "4 1\n5 6 7 8", "expected_output": "1", "explanation": "Subarrays: [6, 7]"}
             ],
             hidden_testcases=[
                 {"stdin": "3 0\n1 1 1", "expected_output": "1", "weight": 50.0},
@@ -609,5 +616,4 @@ async def _seed_assessment(db: AsyncSession, now: datetime):
         db.add(prob_b)
 
     await db.commit()
-    print("✓ CCC Medi-Caps Database seeded with offline contest platform data and Phase 1 assessment.")
-
+    print("✓ CCC Medi-Caps Database seeded with offline contest platform data and screening assessments.")

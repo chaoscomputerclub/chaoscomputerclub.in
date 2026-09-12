@@ -179,12 +179,22 @@ function AssessmentStudio() {
 
   if (error) {
     return (
-      <div className="flex h-screen flex-col items-center justify-center gap-4 bg-[#070707] text-[#eee] font-mono">
-        <ShieldAlert size={40} className="text-destructive" />
-        <p>{error}</p>
-        <Link to="/portal/contests" className="text-accent underline">
-          Return to Contests
-        </Link>
+      <div className="flex h-screen flex-col items-center justify-center gap-4 bg-[#070707] text-[#eee] font-mono p-6 text-center">
+        <ShieldAlert size={44} className="text-destructive" />
+        <h2 className="text-lg font-bold text-white">Assessment Round Unavailable</h2>
+        <p className="text-sm text-[#888] max-w-md">{error}</p>
+        <div className="flex items-center gap-3 mt-2 flex-wrap justify-center">
+          <Link to="/portal/assessments/$contestSlug" params={{ contestSlug: "chaos-arena-2026" }}>
+            <Button className="bg-accent text-accent-foreground font-mono text-xs hover:bg-accent/90">
+              Open Chaos Arena '26 Screening
+            </Button>
+          </Link>
+          <Link to="/portal/contests">
+            <Button variant="outline" className="font-mono text-xs border-[#333] hover:bg-[#181818]">
+              Return to Contests
+            </Button>
+          </Link>
+        </div>
       </div>
     );
   }
