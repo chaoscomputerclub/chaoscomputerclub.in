@@ -13,21 +13,21 @@
 chaoscomputerclub.in/
 ├── root/                                    ← Parent portfolio & platform (chaoscomputerclub.in)
 └── organization/                            ← Registered university chapters
+    └── Medicaps.chaoscomputerclub.in/       ← Medi-Caps University Chapter Member Portal
+```
 
 ---
 
 ## 🚀 Running the Apps
 
 ```bash
-# Run the parent platform (root) on http://localhost:8080
+# Run the parent platform (root) on [http://localhost:8080](http://localhost:8080)
 npm run dev:root
 
-# Run Medi-Caps Chapter portal on http://localhost:8081
+# Run Medi-Caps Chapter portal on [http://localhost:8081](http://localhost:8081)
 npm run dev:medicaps
 
 # Build both applications
-npm run build:all
-```
 
 ---
 
