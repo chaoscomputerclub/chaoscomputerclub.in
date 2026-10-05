@@ -28,6 +28,8 @@ npm run dev:root
 npm run dev:medicaps
 
 # Build both applications
+npm run build:all
+```
 
 ---
 
@@ -35,3 +37,9 @@ npm run dev:medicaps
 
 - **Root Platform**: [`chaoscomputerclub/chaoscomputerclub.in`](https://github.com/chaoscomputerclub/chaoscomputerclub.in)
 - **Medi-Caps Chapter Portal**: [`chaoscomputerclub/medicaps.chaoscomputerclub.in`](https://github.com/chaoscomputerclub/medicaps.chaoscomputerclub.in)
+
+## 🚀 Installation
+
+```bash
+npm install
+```
