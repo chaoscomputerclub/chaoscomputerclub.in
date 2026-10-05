@@ -1,5 +1,7 @@
 # Chaos Computer Club India (`chaoscomputerclub.in`)
 
+![AI Maintained](https://img.shields.io/badge/readme-AI%20maintained-blue)
+
 > **Learn. Compete. Build. Connect.**  
 > India's offline competitive tech community for college students — inspired by [CCC Germany](https://www.ccc.de/).
 
@@ -11,8 +13,6 @@
 chaoscomputerclub.in/
 ├── root/                                    ← Parent portfolio & platform (chaoscomputerclub.in)
 └── organization/                            ← Registered university chapters
-    └── Medicaps.chaoscomputerclub.in/       ← Medi-Caps University Chapter Member Portal
-```
 
 ---
 
